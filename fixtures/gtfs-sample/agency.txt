@@ -1,0 +1,6 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url
+SN,Southern,https://www.southernrailway.com/,Europe/London,en,0345 127 2920,
+TL,Thameslink,https://www.thameslinkrailway.com/,Europe/London,en,0345 026 4700,
+GX,Gatwick Express,https://www.gatwickexpress.com/,Europe/London,en,0345 850 1530,
+SW,South Western Railway,https://www.southwesternrailway.com/,Europe/London,en,0345 600 0650,
+LM,London Northwestern Railway,https://www.londonnorthwesternrailway.co.uk/,Europe/London,en,0333 311 0006,

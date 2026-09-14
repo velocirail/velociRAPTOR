@@ -1,0 +1,39 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station,stop_timezone,wheelchair_boarding
+VIC,VICTRIC,London Victoria,3,51.4952,-0.1441,,,0,,Europe/London,0
+LBG,LNDNBDC,London Bridge,3,51.505,-0.0864,,,0,,Europe/London,0
+STP,STPX,London St Pancras International,3,51.5316,-0.1263,,,0,,Europe/London,0
+ZFD,FRNDNLT,Farringdon,2,51.5203,-0.1053,,,0,,Europe/London,0
+EUS,EUSTON,London Euston,3,51.5282,-0.1337,,,0,,Europe/London,0
+CLJ,CLPHMJC,Clapham Junction,3,51.4642,-0.1705,,,0,,Europe/London,0
+ECR,ECROYDN,East Croydon,3,51.3756,-0.0928,,,0,,Europe/London,0
+RDH,REDHILL,Redhill,2,51.2402,-0.1656,,,0,,Europe/London,0
+GTW,GTWK,Gatwick Airport,3,51.1564,-0.161,,,0,,Europe/London,0
+TBD,THBDGS,Three Bridges,2,51.1169,-0.1622,,,0,,Europe/London,0
+HHE,HYWRDSH,Haywards Heath,2,50.9958,-0.1057,,,0,,Europe/London,0
+BTN,BRGHTN,Brighton,3,50.829,-0.1411,,,0,,Europe/London,0
+HOV,HOVE,Hove,1,50.8354,-0.171,,,0,,Europe/London,0
+PLD,PORTSLD,Portslade,0,50.8391,-0.2065,,,0,,Europe/London,0
+WRH,WORTHNG,Worthing,1,50.8186,-0.3766,,,0,,Europe/London,0
+CCH,CHCHSTR,Chichester,1,50.832,-0.7818,,,0,,Europe/London,0
+HAV,HAVANT,Havant,2,50.8544,-0.9819,,,0,,Europe/London,0
+FTN,FRATTON,Fratton,1,50.7962,-1.0736,,,0,,Europe/London,0
+PMS,PMTH,Portsmouth & Southsea,2,50.7985,-1.0906,,,0,,Europe/London,0
+PMH,PMTHHRB,Portsmouth Harbour,3,50.7963,-1.1083,,,0,,Europe/London,0
+RYP,RYDPIER,Ryde Pier Head,2,50.7375,-1.1594,,,0,,Europe/London,0
+RYD,RYDE,Ryde Esplanade,1,50.7316,-1.159,,,0,,Europe/London,0
+SHN,SHANKLN,Shanklin,1,50.6338,-1.1793,,,0,,Europe/London,0
+LWS,LEWES,Lewes,2,50.8757,0.0093,,,0,,Europe/London,0
+EBN,EBOURNE,Eastbourne,2,50.7695,0.2812,,,0,,Europe/London,0
+BEX,BEXHILL,Bexhill,1,50.8397,0.4718,,,0,,Europe/London,0
+HGS,HASTING,Hastings,3,50.8577,0.5757,,,0,,Europe/London,0
+ORE,ORE,Ore,0,50.8683,0.6079,,,0,,Europe/London,0
+TOK,THROAKS,Three Oaks,0,50.8998,0.6224,,,0,,Europe/London,0
+DLH,DOLEHAM,Doleham,0,50.916,0.644,,,0,,Europe/London,0
+WSE,WNCHLSA,Winchelsea,0,50.9223,0.6997,,,0,,Europe/London,0
+RYE,RYE,Rye,1,50.9518,0.7331,,,0,,Europe/London,0
+APD,APLDORE,Appledore (Kent),0,51.0177,0.806,,,0,,Europe/London,0
+HMT,HAMSTRT,Ham Street,0,51.0665,0.8546,,,0,,Europe/London,0
+AFK,ASHFKY,Ashford International,3,51.1435,0.876,,,0,,Europe/London,0
+ASI,ASHFKI,Ashford International (Eurostar),3,51.1435,0.876,,,0,,Europe/London,0
+WFJ,WATFDJ,Watford Junction,3,51.6636,-0.3965,,,0,,Europe/London,0
+MKC,MKNSCEN,Milton Keynes Central,3,52.0345,-0.774,,,0,,Europe/London,0

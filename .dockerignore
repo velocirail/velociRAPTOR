@@ -1,0 +1,39 @@
+# Build artifacts
+target/
+**/target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Test data
+data/
+
+# Documentation
+*.md
+!CLAUDE.md
+
+# Benchmark results
+*.jfr
+*.hprof
+
+# Logs
+*.log
+
+# Local config
+*.local.*
+
+# Claude Code
+.claude/

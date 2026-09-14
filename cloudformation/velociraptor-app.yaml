@@ -1,0 +1,480 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'velociRAPTOR - ECS Fargate application with CodeDeploy blue/green deployment'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing VPC ID
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnet IDs for ECS tasks (at least 2 in different AZs)
+
+  AlbListenerArn:
+    Type: String
+    Description: Existing ALB HTTPS listener ARN for production traffic
+
+  AlbTestListenerArn:
+    Type: String
+    Description: Existing ALB listener ARN for test traffic (can be HTTP on different port)
+    Default: ''
+
+  ContainerImage:
+    Type: String
+    Description: ECR image URI (e.g., 123456789012.dkr.ecr.eu-west-2.amazonaws.com/velociraptor:latest)
+
+  GtfsSourceUri:
+    Type: String
+    Description: S3 URI for GTFS data (e.g., s3://bucket/gtfs-2026-04-28.zip)
+
+  ContainerMemory:
+    Type: Number
+    Default: 8192
+    AllowedValues: [4096, 6144, 8192, 16384]
+    Description: Container memory in MB (4GB, 6GB, 8GB, 16GB)
+
+  ContainerCpu:
+    Type: Number
+    Default: 2048
+    AllowedValues: [1024, 2048, 4096]
+    Description: Container CPU units (1 vCPU = 1024)
+
+  DesiredCount:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 10
+    Description: Number of tasks to run
+
+  HealthCheckGracePeriod:
+    Type: Number
+    Default: 300
+    MinValue: 60
+    MaxValue: 600
+    Description: Seconds to wait for precompute before failing health checks
+
+  GcContainerOptions:
+    Type: String
+    Default: '-XX:+UseZGC -XX:+ZGenerational -XX:+UnlockExperimentalVMOptions -XX:+UseCompactObjectHeaders'
+    Description: JVM GC options passed to run-java.sh via GC_CONTAINER_OPTIONS
+
+Conditions:
+  HasTestListener: !Not [!Equals [!Ref AlbTestListenerArn, '']]
+
+Resources:
+  # CloudWatch Logs
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/velociraptor-${Environment}'
+      RetentionInDays: 7
+
+  # Security Group for ECS Tasks
+  TaskSecurityGroup:
+    Type: AWS::IAM::SecurityGroup
+    Properties:
+      GroupDescription: !Sub 'velociRAPTOR ECS tasks - ${Environment}'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+          Description: 'Allow traffic from ALB'
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-task-${Environment}'
+
+  # Security Group for ALB to Task communication
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub 'ALB to velociRAPTOR tasks - ${Environment}'
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          DestinationSecurityGroupId: !Ref TaskSecurityGroup
+          Description: 'Allow traffic to ECS tasks'
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-alb-${Environment}'
+
+  # IAM Role for ECS Task
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'velociraptor-task-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3GtfsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${GtfsSourceUri}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub 'arn:aws:s3:::${GtfsSourceUri}'
+        - PolicyName: XRayAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: '*'
+        - PolicyName: CloudWatchMetrics
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-task-${Environment}'
+
+  # IAM Role for ECS Task Execution
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'velociraptor-execution-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-execution-${Environment}'
+
+  # ECS Cluster
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'velociraptor-${Environment}'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-${Environment}'
+
+  # ECS Task Definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'velociraptor-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: velociraptor
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: VELOCIRAPTOR_GTFS_SOURCE_PATH
+              Value: !Ref GtfsSourceUri
+            - Name: VELOCIRAPTOR_RAPTOR_SERVICEDATE_PRECOMPUTE
+              Value: 'true'
+            - Name: QUARKUS_LOG_LEVEL
+              Value: INFO
+            - Name: QUARKUS_LOG_CONSOLE_JSON
+              Value: 'true'
+            - Name: QUARKUS_PROFILE
+              Value: prod
+            - Name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+              Value: http://localhost:4317
+            - Name: QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL
+              Value: grpc
+            - Name: QUARKUS_OTEL_SERVICE_NAME
+              Value: !Sub 'velociraptor-${Environment}'
+            - Name: QUARKUS_OTEL_TRACES_EXPORTER
+              Value: otlp
+            - Name: QUARKUS_OTEL_METRICS_EXPORTER
+              Value: otlp
+            - Name: GC_CONTAINER_OPTIONS
+              Value: !Ref GcContainerOptions
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8080/q/health/ready || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: !Ref HealthCheckGracePeriod
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+        - Name: aws-otel-collector
+          Image: public.ecr.aws/aws-observability/aws-otel-collector:latest
+          Essential: true
+          Command:
+            - --config=/etc/ecs/ecs-default-config.yaml
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: otel
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-${Environment}'
+
+  # Target Groups for Blue/Green Deployment
+  TargetGroupBlue:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'velociraptor-blue-${Environment}'
+      Port: 8080
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckEnabled: true
+      HealthCheckPath: /q/health/ready
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-blue-${Environment}'
+
+  TargetGroupGreen:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'velociraptor-green-${Environment}'
+      Port: 8080
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckEnabled: true
+      HealthCheckPath: /q/health/ready
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-green-${Environment}'
+
+  # ECS Service with CodeDeploy
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - AlbListenerRuleBlue
+    Properties:
+      ServiceName: !Sub 'velociraptor-${Environment}'
+      Cluster: !Ref EcsCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - ContainerName: velociraptor
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroupBlue
+      HealthCheckGracePeriodSeconds: !Ref HealthCheckGracePeriod
+      DeploymentController:
+        Type: CODE_DEPLOY
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-${Environment}'
+
+  # ALB Listener Rules
+  AlbListenerRuleBlue:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AlbListenerArn
+      Priority: 100
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - '/*'
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupBlue
+
+  AlbTestListenerRuleBlue:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasTestListener
+    Properties:
+      ListenerArn: !Ref AlbTestListenerArn
+      Priority: 100
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - '/*'
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupBlue
+
+  # CodeDeploy Application
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Sub 'velociraptor-${Environment}'
+      ComputePlatform: ECS
+
+  # CodeDeploy Deployment Group
+  CodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref CodeDeployApplication
+      DeploymentGroupName: !Sub 'velociraptor-${Environment}'
+      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
+      DeploymentStyle:
+        DeploymentType: BLUE_GREEN
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+      BlueGreenDeploymentConfiguration:
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 5
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - TargetGroups:
+              - Name: !GetAtt TargetGroupBlue.TargetGroupName
+              - Name: !GetAtt TargetGroupGreen.TargetGroupName
+            ProdTrafficRoute:
+              ListenerArns:
+                - !Ref AlbListenerArn
+            TestTrafficRoute: !If
+              - HasTestListener
+              - ListenerArns:
+                  - !Ref AlbTestListenerArn
+              - !Ref AWS::NoValue
+      ECSServices:
+        - ClusterName: !Ref EcsCluster
+          ServiceName: !GetAtt EcsService.Name
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events:
+          - DEPLOYMENT_FAILURE
+          - DEPLOYMENT_STOP_ON_ALARM
+
+  # IAM Role for CodeDeploy
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'velociraptor-codedeploy-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
+      Tags:
+        - Key: Name
+          Value: !Sub 'velociraptor-codedeploy-${Environment}'
+
+Outputs:
+  ClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref EcsCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterName'
+
+  ServiceName:
+    Description: ECS Service Name
+    Value: !GetAtt EcsService.Name
+    Export:
+      Name: !Sub '${AWS::StackName}-ServiceName'
+
+  TaskDefinitionArn:
+    Description: Task Definition ARN
+    Value: !Ref TaskDefinition
+    Export:
+      Name: !Sub '${AWS::StackName}-TaskDefinitionArn'
+
+  TargetGroupBlueArn:
+    Description: Blue Target Group ARN
+    Value: !Ref TargetGroupBlue
+    Export:
+      Name: !Sub '${AWS::StackName}-TargetGroupBlue'
+
+  TargetGroupGreenArn:
+    Description: Green Target Group ARN
+    Value: !Ref TargetGroupGreen
+    Export:
+      Name: !Sub '${AWS::StackName}-TargetGroupGreen'
+
+  CodeDeployApplicationName:
+    Description: CodeDeploy Application Name
+    Value: !Ref CodeDeployApplication
+    Export:
+      Name: !Sub '${AWS::StackName}-CodeDeployApp'
+
+  CodeDeployDeploymentGroupName:
+    Description: CodeDeploy Deployment Group Name
+    Value: !Ref CodeDeployDeploymentGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-CodeDeployGroup'
+
+  LogGroupName:
+    Description: CloudWatch Log Group Name
+    Value: !Ref LogGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-LogGroup'
+
+  TaskSecurityGroupId:
+    Description: Security Group ID for ECS tasks
+    Value: !Ref TaskSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-TaskSecurityGroup'

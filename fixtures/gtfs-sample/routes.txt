@@ -1,0 +1,21 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_text_color,route_color,route_url,route_desc
+SN_FAST_VIC_BTN,SN,SN:VIC->BTN,Southern fast service from London Victoria to Brighton,2,,,,Train. Standard class only. Reservation not possible
+SN_FAST_BTN_VIC,SN,SN:BTN->VIC,Southern fast service from Brighton to London Victoria,2,,,,Train. Standard class only. Reservation not possible
+SN_STOP_VIC_BTN,SN,SN:VIC->BTN,Southern stopping service from London Victoria to Brighton,2,,,,Train. Standard class only. Reservation not possible
+SN_STOP_BTN_VIC,SN,SN:BTN->VIC,Southern stopping service from Brighton to London Victoria,2,,,,Train. Standard class only. Reservation not possible
+SN_NIGHT_VIC_BTN,SN,SN:VIC->BTN,Southern night service from London Victoria to Brighton,2,,,,Train. Standard class only. Reservation not possible
+SN_NIGHT_BTN_VIC,SN,SN:BTN->VIC,Southern night service from Brighton to London Victoria,2,,,,Train. Standard class only. Reservation not possible
+SN_BTN_PMH,SN,SN:BTN->PMH,Southern West Coastway from Brighton to Portsmouth Harbour,2,,,,Train. Standard class only. Reservation not possible
+SN_PMH_BTN,SN,SN:PMH->BTN,Southern West Coastway from Portsmouth Harbour to Brighton,2,,,,Train. Standard class only. Reservation not possible
+SN_BTN_HGS,SN,SN:BTN->HGS,Southern East Coastway from Brighton to Hastings,2,,,,Train. Standard class only. Reservation not possible
+SN_HGS_BTN,SN,SN:HGS->BTN,Southern East Coastway from Hastings to Brighton,2,,,,Train. Standard class only. Reservation not possible
+SN_HGS_AFK,SN,SN:HGS->AFK,Southern Marshlink from Hastings to Ashford International,2,,,,Train. Standard class only. Reservation not possible
+SN_AFK_HGS,SN,SN:AFK->HGS,Southern Marshlink from Ashford International to Hastings,2,,,,Train. Standard class only. Reservation not possible
+TL_STP_BTN,TL,TL:STP->BTN,Thameslink from London St Pancras to Brighton,2,,,,Train. Standard class only. Reservation not possible
+TL_BTN_STP,TL,TL:BTN->STP,Thameslink from Brighton to London St Pancras,2,,,,Train. Standard class only. Reservation not possible
+GX_VIC_GTW,GX,GX:VIC->GTW,Gatwick Express from London Victoria to Gatwick Airport,2,,,,Train. First class available. Reservation possible
+GX_GTW_VIC,GX,GX:GTW->VIC,Gatwick Express from Gatwick Airport to London Victoria,2,,,,Train. First class available. Reservation possible
+SW_RYP_SHN,SW,SW:RYP->SHN,Island Line from Ryde Pier Head to Shanklin,2,,,,Train. Standard class only. Reservation not possible
+SW_SHN_RYP,SW,SW:SHN->RYP,Island Line from Shanklin to Ryde Pier Head,2,,,,Train. Standard class only. Reservation not possible
+LM_EUS_MKC,LM,LM:EUS->MKC,London Northwestern from London Euston to Milton Keynes Central,2,,,,Train. First class available. Reservation possible
+LM_MKC_EUS,LM,LM:MKC->EUS,London Northwestern from Milton Keynes Central to London Euston,2,,,,Train. First class available. Reservation possible

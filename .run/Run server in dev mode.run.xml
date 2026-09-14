@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run server in dev mode" type="QuarkusRunConfiguration" factoryName="QuarkusRunConfiguration">
+    <module name="server" />
+    <option name="profile" />
+    <method v="2" />
+  </configuration>
+</component>

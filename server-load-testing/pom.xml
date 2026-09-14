@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.joshuaharwood</groupId>
+        <artifactId>velociraptor</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>server-load-testing</artifactId>
+
+    <properties>
+        <gatling.version>3.15.1</gatling.version>
+        <gatling-maven-plugin.version>4.21.7</gatling-maven-plugin.version>
+    </properties>
+
+    <!--
+      Deliberately no dependency on the server module: the simulations exercise the HTTP API as a
+      black box, and Quarkus's Netty on the test classpath would clash with Gatling's. Build the
+      server separately and point the simulations at it via -Dloadtest.baseUrl (see README.md).
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <!--
+                  Not bound to a lifecycle phase: load tests are run explicitly with
+                  `mvn -pl server-load-testing gatling:test`, never as part of `mvn package`.
+                  Enterprise Cloud (https://cloud.gatling.io/) configuration reference:
+                  https://docs.gatling.io/reference/integrations/build-tools/maven-plugin/
+                -->
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

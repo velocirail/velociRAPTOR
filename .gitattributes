@@ -1,0 +1,2 @@
+# The sample feed is compared byte-for-byte with its generator, so keep it LF everywhere.
+fixtures/gtfs-sample/** text eol=lf
