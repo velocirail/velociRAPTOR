@@ -48,3 +48,6 @@ jobs:
             server/openapi/openapi.json
             server/target/*-runner.jar
           fail_on_unmatched_files: true
+          # 0.x: the HTTP API is still free to change between tags, so every release this
+          # workflow creates is a prerelease until the API is settled enough for a 1.0.
+          prerelease: true
