@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.joshuaharwood</groupId>
     <artifactId>velociraptor</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.1.0</version>
   </parent>
 
   <groupId>com.joshuaharwood.velociraptor</groupId>

@@ -478,7 +478,7 @@
   },
   "info" : {
     "title" : "velociRAPTOR",
-    "version" : "0.2.0-SNAPSHOT",
+    "version" : "0.1.0",
     "description" : "RAPTOR journey planning over a GTFS feed. Times on the wire are ISO 8601 with a UTC offset; the server works on the Europe/London clock, which is the one GTFS times and service dates are expressed on."
   },
   "servers" : [ {
