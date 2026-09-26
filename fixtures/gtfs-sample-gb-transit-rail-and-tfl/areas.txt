@@ -1,0 +1,2 @@
+area_id,area_name
+1072,London Terminals

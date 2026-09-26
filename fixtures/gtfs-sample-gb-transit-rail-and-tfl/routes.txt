@@ -1,0 +1,7 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_text_color,route_color,route_url,route_desc
+SN,=SN,,Southern,2,FFFFFF,000000,,
+TL,=TL,,Thameslink,2,FFFFFF,000000,,
+GX,=GX,,Gatwick Express,2,FFFFFF,000000,,
+SW,=SW,,South Western Railway,2,FFFFFF,000000,,
+LM,=LM,,London Northwestern Railway,2,FFFFFF,000000,,
+tfl_VIC,LUL,Victoria,Victoria,1,000000,039BE5,https://tfl.gov.uk/tube/route/victoria/,

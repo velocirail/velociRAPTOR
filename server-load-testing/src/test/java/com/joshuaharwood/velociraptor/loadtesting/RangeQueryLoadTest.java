@@ -26,7 +26,7 @@ import static io.gatling.javaapi.http.HttpDsl.status;
 /**
  * Shared plumbing for load tests against {@code GET /} (the range query endpoint): the HTTP
  * protocol, an origin/destination feeder over stations in the artificial sample feed
- * ({@code fixtures/gtfs-sample}), and a cache warm-up.
+ * ({@code fixtures/gtfs-sample-gb-transit}), and a cache warm-up.
  *
  * <p>Everything is tuned with {@code -Dloadtest.*} system properties:
  *

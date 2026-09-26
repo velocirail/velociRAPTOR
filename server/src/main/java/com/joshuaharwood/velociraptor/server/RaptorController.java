@@ -50,20 +50,11 @@ public class RaptorController {
   // through it to get the correct (DST-aware) offset for the wire (see toOffset).
   private static final ZoneId LONDON = ZoneId.of("Europe/London");
 
+  private final ExtendedGtfsRelationalDaoImpl dao;
   // Builds the RailTrip the rail result factory expects, carrying the GTFS metadata
   // (serviceId/agencyId/trainUid) the raptor core treats as opaque. Shared by the single-day and
   // multi-day-overlay builds so both produce the same trip type.
-  private static final BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> RAIL_TRIP_FACTORY =
-      (obaTrip, stopTimes) -> new RailTrip(
-          obaTrip.getId().getId(),
-          stopTimes,
-          obaTrip.getServiceId().getId(),
-          obaTrip.getRoute().getAgency().getId(),
-          // The ATOC/CIF train UID (e.g. W45490) lives in GTFS trip_headsign, matching the TS reference's
-          // loader (trainUid = row.trip_headsign). The numeric trip_id is kept as id().
-          obaTrip.getTripHeadsign());
-
-  private final ExtendedGtfsRelationalDaoImpl dao;
+  private final BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> railTripFactory;
   private final CalendarService calendarService;
   private final ConcurrentHashMap<ServiceDate, RaptorAlgorithm> algorithmCache = new ConcurrentHashMap<>();
   private final LongHistogram rangeQueryJourneys;
@@ -79,6 +70,15 @@ public class RaptorController {
                           @SuppressWarnings("CdiInjectionPointsInspection") OpenTelemetry openTelemetry,
                           RaptorAlgorithmConfig config) {
     this.dao = dao;
+    // The ATOC/CIF train UID (e.g. W45490) is wherever the feed's profile says: the lead of a gb-transit trip_id,
+    // or the trip_headsign of the deprecated dtd2gtfs feed. The trip_id itself is kept as id().
+    var profile = dao.feedProfile();
+    this.railTripFactory = (obaTrip, stopTimes) -> new RailTrip(
+        obaTrip.getId().getId(),
+        stopTimes,
+        obaTrip.getServiceId().getId(),
+        obaTrip.getRoute().getAgency().getId(),
+        profile.trainUid(obaTrip));
     this.calendarService = calendarService;
     this.config = config;
 
@@ -152,8 +152,9 @@ public class RaptorController {
   }
 
   /**
-   * The operator's ATOC code. The current feed's agency_id is the code itself (e.g. {@code GW});
-   * gb-transit publishes it in National Operator Code form with an {@code =} prefix ({@code =GW}).
+   * The operator's code. gb-transit publishes a rail operator's ATOC code in National Operator Code form, with an
+   * {@code =} prefix ({@code =GW}), and TfL's operators by their own ({@code LUL}); the deprecated dtd2gtfs feed's
+   * agency_id is the ATOC code itself ({@code GW}).
    */
   static @org.jspecify.annotations.Nullable String operatorOf(@org.jspecify.annotations.Nullable String agencyId) {
     if (agencyId == null) {
@@ -332,7 +333,7 @@ public class RaptorController {
 
     var algorithm = algorithmCache.computeIfAbsent(sd, d -> {
       cacheMiss.set(true);
-      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, RAIL_TRIP_FACTORY);
+      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, railTripFactory);
     });
     if (cacheMiss.get() && !precomputed) {
       cacheMisses.add(1);

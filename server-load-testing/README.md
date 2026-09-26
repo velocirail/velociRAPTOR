@@ -11,12 +11,13 @@ on the `server` module, so Quarkus's Netty never meets Gatling's on one classpat
 ## A note on the dataset
 
 These simulations run against whatever feed the server was started with. The repository ships only
-`fixtures/gtfs-sample`, an artificial feed of a few hundred trips — large enough to exercise every
+the artificial sample feed (`fixtures/gtfs-sample-gb-transit`), a few hundred trips — large enough to exercise every
 code path, far too small to say anything about production capacity. Treat runs against the sample
 feed as a check that the harness works, not as performance figures.
 
-To measure capacity meaningfully, point the server at a full-size feed of your own with
-`-Dvelociraptor.gtfs.source.path=...` and size the heap for it. Startup cost and memory scale with
+To measure capacity meaningfully, point the server at a full-size feed with
+`-Dvelociraptor.gtfs.source.path=...` - a gb-transit release such as `gtfs-national-rail-only.zip` - and
+size the heap for it. Startup cost and memory scale with
 the number of service dates in the feed when precompute is enabled.
 
 ## Running
@@ -28,7 +29,8 @@ the number of service dates in the feed when precompute is enabled.
    ```bash
    ./mvnw -B -pl server -am package -DskipTests
    cd server && java \
-     -Dvelociraptor.gtfs.source.path=../fixtures/gtfs-sample \
+     -Dvelociraptor.gtfs.source.path=../fixtures/gtfs-sample-gb-transit \
+     -Dvelociraptor.gtfs.source.format=gb-transit \
      -Dvelociraptor.raptor.servicedate.precompute=true \
      -jar target/quarkus-app/quarkus-run.jar
    ```
