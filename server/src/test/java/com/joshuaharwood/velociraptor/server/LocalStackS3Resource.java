@@ -20,9 +20,10 @@ import java.util.zip.ZipOutputStream;
 /**
  * Starts LocalStack, uploads the GTFS fixture as {@code s3://gtfs-test/gtfs.zip} and points the server at it.
  * <p>
- * The fixture defaults to the artificial sample feed in {@code fixtures/gtfs-sample} (a directory of GTFS text
- * files, zipped on the way up). Set {@code velociraptor.test.gtfs} to another directory or an existing zip to run
- * the suite against a different feed; the assertions in {@link RaptorResourceTest} only hold for the sample.
+ * The fixture defaults to the artificial sample feed in gb-transit form, {@code fixtures/gtfs-sample-gb-transit} (a
+ * directory of GTFS text files, zipped on the way up). Set {@code velociraptor.test.gtfs} to another directory or an
+ * existing zip to run the suite against a different feed, and {@code velociraptor.test.gtfs.format} to its format if
+ * it is not gb-transit; the assertions in {@link RaptorResourceTest} only hold for the sample.
  */
 public class LocalStackS3Resource implements QuarkusTestResourceLifecycleManager {
 
@@ -30,7 +31,8 @@ public class LocalStackS3Resource implements QuarkusTestResourceLifecycleManager
   static final String KEY = "gtfs.zip";
 
   /** Relative to the server module, which is where surefire runs. */
-  static final Path DEFAULT_FIXTURE = Path.of("..", "fixtures", "gtfs-sample");
+  static final Path DEFAULT_FIXTURE = Path.of("..", "fixtures", "gtfs-sample-gb-transit");
+  static final String DEFAULT_FORMAT = "gb-transit";
 
   private LocalStackContainer localStack;
 
@@ -55,6 +57,7 @@ public class LocalStackS3Resource implements QuarkusTestResourceLifecycleManager
 
     return Map.of(
       "velociraptor.gtfs.source.path", "s3://" + BUCKET + "/" + KEY,
+      "velociraptor.gtfs.source.format", System.getProperty("velociraptor.test.gtfs.format", DEFAULT_FORMAT),
       "quarkus.s3.endpoint-override", endpoint.toString(),
       "quarkus.s3.aws.credentials.type", "static",
       "quarkus.s3.aws.credentials.static-provider.access-key-id", localStack.getAccessKey(),

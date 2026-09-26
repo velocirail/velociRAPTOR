@@ -68,16 +68,19 @@ All use a `GtfsState` fixture loaded once per trial. Origin `BTN` (Brighton), de
 
 ## On the default dataset
 
-The default fixture is the artificial sample feed (`fixtures/gtfs-sample`, a few hundred trips),
+The default fixture is the artificial sample feed in gb-transit form (`fixtures/gtfs-sample-gb-transit`, a few hundred trips),
 which is far too small to say anything about performance — it exists so the benchmarks are runnable
 out of the box, not so their numbers mean something.
 
 For figures worth quoting, supply a full-size feed of your own:
 
 ```
-java -Draptor.benchmark.gtfs=/path/to/real.zip -p serviceDateIso=YYYY-MM-DD \
+java -Draptor.benchmark.gtfs=/path/to/gtfs-national-rail-only.zip -p serviceDateIso=YYYY-MM-DD \
   -jar raptor-benchmarks/target/benchmarks.jar
 ```
+
+The feed is read as gb-transit. A feed in the deprecated dtd2gtfs format needs
+`-Draptor.benchmark.gtfs.format=dtd2gtfs` as well.
 
 ## Indicative figures
 

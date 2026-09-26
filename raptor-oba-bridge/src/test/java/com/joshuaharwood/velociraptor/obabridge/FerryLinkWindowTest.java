@@ -1,6 +1,7 @@
 package com.joshuaharwood.velociraptor.obabridge;
 
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
@@ -29,6 +30,9 @@ import static org.assertj.core.api.Assertions.from;
  * end of the link, interchange included: Shanklin 06:50 reaches Ryde Pier Head at 07:15, and 07:15 + 2 min + 22 min
  * + 3 min = 07:42 is inside Saturday's window and before Sunday's start.
  */
+// Read from the dtd2gtfs sample: its links.txt keeps the ferry's Mon-Sat and Sunday windows apart, which the one
+// envelope row per pair gb-transit publishes cannot (BUGS.md 10.1).
+@SuppressWarnings("removal")
 class FerryLinkWindowTest {
 
   private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample").toFile();
@@ -45,7 +49,7 @@ class FerryLinkWindowTest {
 
   @BeforeAll
   static void loadGtfs() {
-    dao = GtfsDeserialiser.createNewDao(GTFS_FILE);
+    dao = GtfsDeserialiser.createNewDao(GTFS_FILE, FeedFormat.DTD2GTFS);
     calendarService = CalendarServiceDataFactoryImpl.createService(dao);
   }
 

@@ -1,0 +1,134 @@
+stop_id,stop_code,stop_name,stop_desc,zone_id,stop_url,location_type,parent_station,platform_code,stop_timezone,wheelchair_boarding,stop_lon,stop_lat
+9100APLDORE1,APD,Appledore (Kent) Platform 1,0,,,0,910GAPLDORE,1,Europe/London,0,0.806,51.0177
+9100APLDORE2,APD,Appledore (Kent) Platform 2,0,,,0,910GAPLDORE,2,Europe/London,0,0.806,51.0177
+9100ASHFKY1,AFK,Ashford International Platform 1,3,,,0,910GASHFKY,1,Europe/London,0,0.876,51.1435
+9100ASHFKY2,AFK,Ashford International Platform 2,3,,,0,910GASHFKY,2,Europe/London,0,0.876,51.1435
+9100BEXHILL1,BEX,Bexhill Platform 1,1,,,0,910GBEXHILL,1,Europe/London,0,0.4718,50.8397
+9100BEXHILL2,BEX,Bexhill Platform 2,1,,,0,910GBEXHILL,2,Europe/London,0,0.4718,50.8397
+9100BRGHTN1,BTN,Brighton Platform 1,3,,,0,910GBRGHTN,1,Europe/London,0,-0.1411,50.829
+9100BRGHTN2,BTN,Brighton Platform 2,3,,,0,910GBRGHTN,2,Europe/London,0,-0.1411,50.829
+9100BRGHTN3,BTN,Brighton Platform 3,3,,,0,910GBRGHTN,3,Europe/London,0,-0.1411,50.829
+9100BRGHTN4,BTN,Brighton Platform 4,3,,,0,910GBRGHTN,4,Europe/London,0,-0.1411,50.829
+9100BRGHTN5,BTN,Brighton Platform 5,3,,,0,910GBRGHTN,5,Europe/London,0,-0.1411,50.829
+9100BRGHTN6,BTN,Brighton Platform 6,3,,,0,910GBRGHTN,6,Europe/London,0,-0.1411,50.829
+9100BRGHTN7,BTN,Brighton Platform 7,3,,,0,910GBRGHTN,7,Europe/London,0,-0.1411,50.829
+9100BRGHTN8,BTN,Brighton Platform 8,3,,,0,910GBRGHTN,8,Europe/London,0,-0.1411,50.829
+9100CHCHSTR1,CCH,Chichester Platform 1,1,,,0,910GCHCHSTR,1,Europe/London,0,-0.7818,50.832
+9100CHCHSTR2,CCH,Chichester Platform 2,1,,,0,910GCHCHSTR,2,Europe/London,0,-0.7818,50.832
+9100CLPHMJC13,CLJ,Clapham Junction Platform 13,3,,,0,910GCLPHMJC,13,Europe/London,0,-0.1705,51.4642
+9100CLPHMJC14,CLJ,Clapham Junction Platform 14,3,,,0,910GCLPHMJC,14,Europe/London,0,-0.1705,51.4642
+9100DOLEHAM,DLH,Doleham,0,,,0,910GDOLEHAM,,Europe/London,0,0.644,50.916
+9100EBOURNE2,EBN,Eastbourne Platform 2,2,,,0,910GEBOURNE,2,Europe/London,0,0.2812,50.7695
+9100EBOURNE3,EBN,Eastbourne Platform 3,2,,,0,910GEBOURNE,3,Europe/London,0,0.2812,50.7695
+9100ECROYDN1,ECR,East Croydon Platform 1,3,,,0,910GECROYDN,1,Europe/London,0,-0.0928,51.3756
+9100ECROYDN2,ECR,East Croydon Platform 2,3,,,0,910GECROYDN,2,Europe/London,0,-0.0928,51.3756
+9100ECROYDN3,ECR,East Croydon Platform 3,3,,,0,910GECROYDN,3,Europe/London,0,-0.0928,51.3756
+9100ECROYDN4,ECR,East Croydon Platform 4,3,,,0,910GECROYDN,4,Europe/London,0,-0.0928,51.3756
+9100EUSTON8,EUS,London Euston Platform 8,3,,,0,910GEUSTON,8,Europe/London,0,-0.1337,51.5282
+9100EUSTON9,EUS,London Euston Platform 9,3,,,0,910GEUSTON,9,Europe/London,0,-0.1337,51.5282
+9100FRATTON1,FTN,Fratton Platform 1,1,,,0,910GFRATTON,1,Europe/London,0,-1.0736,50.7962
+9100FRATTON2,FTN,Fratton Platform 2,1,,,0,910GFRATTON,2,Europe/London,0,-1.0736,50.7962
+9100FRNDNLT3,ZFD,Farringdon Platform 3,2,,,0,910GFRNDNLT,3,Europe/London,0,-0.1053,51.5203
+9100FRNDNLT4,ZFD,Farringdon Platform 4,2,,,0,910GFRNDNLT,4,Europe/London,0,-0.1053,51.5203
+9100GTWK3,GTW,Gatwick Airport Platform 3,3,,,0,910GGTWK,3,Europe/London,0,-0.161,51.1564
+9100GTWK4,GTW,Gatwick Airport Platform 4,3,,,0,910GGTWK,4,Europe/London,0,-0.161,51.1564
+9100GTWK5,GTW,Gatwick Airport Platform 5,3,,,0,910GGTWK,5,Europe/London,0,-0.161,51.1564
+9100GTWK6,GTW,Gatwick Airport Platform 6,3,,,0,910GGTWK,6,Europe/London,0,-0.161,51.1564
+9100GTWK7,GTW,Gatwick Airport Platform 7,3,,,0,910GGTWK,7,Europe/London,0,-0.161,51.1564
+9100HAMSTRT1,HMT,Ham Street Platform 1,0,,,0,910GHAMSTRT,1,Europe/London,0,0.8546,51.0665
+9100HAMSTRT2,HMT,Ham Street Platform 2,0,,,0,910GHAMSTRT,2,Europe/London,0,0.8546,51.0665
+9100HASTING1,HGS,Hastings Platform 1,3,,,0,910GHASTING,1,Europe/London,0,0.5757,50.8577
+9100HASTING2,HGS,Hastings Platform 2,3,,,0,910GHASTING,2,Europe/London,0,0.5757,50.8577
+9100HASTING3,HGS,Hastings Platform 3,3,,,0,910GHASTING,3,Europe/London,0,0.5757,50.8577
+9100HASTING4,HGS,Hastings Platform 4,3,,,0,910GHASTING,4,Europe/London,0,0.5757,50.8577
+9100HAVANT1,HAV,Havant Platform 1,2,,,0,910GHAVANT,1,Europe/London,0,-0.9819,50.8544
+9100HAVANT2,HAV,Havant Platform 2,2,,,0,910GHAVANT,2,Europe/London,0,-0.9819,50.8544
+9100HOVE1,HOV,Hove Platform 1,1,,,0,910GHOVE,1,Europe/London,0,-0.171,50.8354
+9100HOVE2,HOV,Hove Platform 2,1,,,0,910GHOVE,2,Europe/London,0,-0.171,50.8354
+9100HYWRDSH2,HHE,Haywards Heath Platform 2,2,,,0,910GHYWRDSH,2,Europe/London,0,-0.1057,50.9958
+9100HYWRDSH3,HHE,Haywards Heath Platform 3,2,,,0,910GHYWRDSH,3,Europe/London,0,-0.1057,50.9958
+9100LEWES1,LWS,Lewes Platform 1,2,,,0,910GLEWES,1,Europe/London,0,0.0093,50.8757
+9100LEWES3,LWS,Lewes Platform 3,2,,,0,910GLEWES,3,Europe/London,0,0.0093,50.8757
+9100LNDNBDC4,LBG,London Bridge Platform 4,3,,,0,910GLNDNBDC,4,Europe/London,0,-0.0864,51.505
+9100LNDNBDC5,LBG,London Bridge Platform 5,3,,,0,910GLNDNBDC,5,Europe/London,0,-0.0864,51.505
+9100MKNSCEN4,MKC,Milton Keynes Central Platform 4,3,,,0,910GMKNSCEN,4,Europe/London,0,-0.774,52.0345
+9100MKNSCEN5,MKC,Milton Keynes Central Platform 5,3,,,0,910GMKNSCEN,5,Europe/London,0,-0.774,52.0345
+9100ORE1,ORE,Ore Platform 1,0,,,0,910GORE,1,Europe/London,0,0.6079,50.8683
+9100ORE2,ORE,Ore Platform 2,0,,,0,910GORE,2,Europe/London,0,0.6079,50.8683
+9100PMTH1,PMS,Portsmouth & Southsea Platform 1,2,,,0,910GPMTH,1,Europe/London,0,-1.0906,50.7985
+9100PMTH2,PMS,Portsmouth & Southsea Platform 2,2,,,0,910GPMTH,2,Europe/London,0,-1.0906,50.7985
+9100PMTHHRB3,PMH,Portsmouth Harbour Platform 3,3,,,0,910GPMTHHRB,3,Europe/London,0,-1.1083,50.7963
+9100PMTHHRB4,PMH,Portsmouth Harbour Platform 4,3,,,0,910GPMTHHRB,4,Europe/London,0,-1.1083,50.7963
+9100PORTSLD1,PLD,Portslade Platform 1,0,,,0,910GPORTSLD,1,Europe/London,0,-0.2065,50.8391
+9100PORTSLD2,PLD,Portslade Platform 2,0,,,0,910GPORTSLD,2,Europe/London,0,-0.2065,50.8391
+9100REDHILL1,RDH,Redhill Platform 1,2,,,0,910GREDHILL,1,Europe/London,0,-0.1656,51.2402
+9100REDHILL2,RDH,Redhill Platform 2,2,,,0,910GREDHILL,2,Europe/London,0,-0.1656,51.2402
+9100RYDE,RYD,Ryde Esplanade,1,,,0,910GRYDE,,Europe/London,0,-1.159,50.7316
+9100RYDPIER,RYP,Ryde Pier Head,2,,,0,910GRYDPIER,,Europe/London,0,-1.1594,50.7375
+9100RYE1,RYE,Rye Platform 1,1,,,0,910GRYE,1,Europe/London,0,0.7331,50.9518
+9100RYE2,RYE,Rye Platform 2,1,,,0,910GRYE,2,Europe/London,0,0.7331,50.9518
+9100SHANKLN,SHN,Shanklin,1,,,0,910GSHANKLN,,Europe/London,0,-1.1793,50.6338
+9100STPXA,STP,London St Pancras International Platform A,3,,,0,910GSTPX,A,Europe/London,0,-0.1263,51.5316
+9100STPXB,STP,London St Pancras International Platform B,3,,,0,910GSTPX,B,Europe/London,0,-0.1263,51.5316
+9100THBDGS1,TBD,Three Bridges Platform 1,2,,,0,910GTHBDGS,1,Europe/London,0,-0.1622,51.1169
+9100THBDGS2,TBD,Three Bridges Platform 2,2,,,0,910GTHBDGS,2,Europe/London,0,-0.1622,51.1169
+9100THBDGS3,TBD,Three Bridges Platform 3,2,,,0,910GTHBDGS,3,Europe/London,0,-0.1622,51.1169
+9100THBDGS4,TBD,Three Bridges Platform 4,2,,,0,910GTHBDGS,4,Europe/London,0,-0.1622,51.1169
+9100THROAKS,TOK,Three Oaks,0,,,0,910GTHROAKS,,Europe/London,0,0.6224,50.8998
+9100VICTRIC13,VIC,London Victoria Platform 13,3,,,0,910GVICTRIC,13,Europe/London,0,-0.1441,51.4952
+9100VICTRIC15,VIC,London Victoria Platform 15,3,,,0,910GVICTRIC,15,Europe/London,0,-0.1441,51.4952
+9100VICTRIC16,VIC,London Victoria Platform 16,3,,,0,910GVICTRIC,16,Europe/London,0,-0.1441,51.4952
+9100VICTRIC17,VIC,London Victoria Platform 17,3,,,0,910GVICTRIC,17,Europe/London,0,-0.1441,51.4952
+9100VICTRIC18,VIC,London Victoria Platform 18,3,,,0,910GVICTRIC,18,Europe/London,0,-0.1441,51.4952
+9100WATFDJ8,WFJ,Watford Junction Platform 8,3,,,0,910GWATFDJ,8,Europe/London,0,-0.3965,51.6636
+9100WATFDJ9,WFJ,Watford Junction Platform 9,3,,,0,910GWATFDJ,9,Europe/London,0,-0.3965,51.6636
+9100WNCHLSA,WSE,Winchelsea,0,,,0,910GWNCHLSA,,Europe/London,0,0.6997,50.9223
+9100WORTHNG1,WRH,Worthing Platform 1,1,,,0,910GWORTHNG,1,Europe/London,0,-0.3766,50.8186
+9100WORTHNG2,WRH,Worthing Platform 2,1,,,0,910GWORTHNG,2,Europe/London,0,-0.3766,50.8186
+910GAPLDORE,APD,Appledore (Kent),0,,,1,,,Europe/London,0,0.806,51.0177
+910GASHFKI,ASI,Ashford International (Eurostar),3,,,1,,,Europe/London,0,0.876,51.1435
+910GASHFKY,AFK,Ashford International,3,,,1,,,Europe/London,0,0.876,51.1435
+910GBEXHILL,BEX,Bexhill,1,,,1,,,Europe/London,0,0.4718,50.8397
+910GBRGHTN,BTN,Brighton,3,,,1,,,Europe/London,0,-0.1411,50.829
+910GCHCHSTR,CCH,Chichester,1,,,1,,,Europe/London,0,-0.7818,50.832
+910GCLPHMJC,CLJ,Clapham Junction,3,,,1,,,Europe/London,0,-0.1705,51.4642
+910GDOLEHAM,DLH,Doleham,0,,,1,,,Europe/London,0,0.644,50.916
+910GEBOURNE,EBN,Eastbourne,2,,,1,,,Europe/London,0,0.2812,50.7695
+910GECROYDN,ECR,East Croydon,3,,,1,,,Europe/London,0,-0.0928,51.3756
+910GEUSTON,EUS,London Euston,3,,,1,,,Europe/London,0,-0.1337,51.5282
+910GFRATTON,FTN,Fratton,1,,,1,,,Europe/London,0,-1.0736,50.7962
+910GFRNDNLT,ZFD,Farringdon,2,,,1,,,Europe/London,0,-0.1053,51.5203
+910GGTWK,GTW,Gatwick Airport,3,,,1,,,Europe/London,0,-0.161,51.1564
+910GHAMSTRT,HMT,Ham Street,0,,,1,,,Europe/London,0,0.8546,51.0665
+910GHASTING,HGS,Hastings,3,,,1,,,Europe/London,0,0.5757,50.8577
+910GHAVANT,HAV,Havant,2,,,1,,,Europe/London,0,-0.9819,50.8544
+910GHOVE,HOV,Hove,1,,,1,,,Europe/London,0,-0.171,50.8354
+910GHYWRDSH,HHE,Haywards Heath,2,,,1,,,Europe/London,0,-0.1057,50.9958
+910GLEWES,LWS,Lewes,2,,,1,,,Europe/London,0,0.0093,50.8757
+910GLNDNBDC,LBG,London Bridge,3,,,1,,,Europe/London,0,-0.0864,51.505
+910GMKNSCEN,MKC,Milton Keynes Central,3,,,1,,,Europe/London,0,-0.774,52.0345
+910GORE,ORE,Ore,0,,,1,,,Europe/London,0,0.6079,50.8683
+910GPMTH,PMS,Portsmouth & Southsea,2,,,1,,,Europe/London,0,-1.0906,50.7985
+910GPMTHHRB,PMH,Portsmouth Harbour,3,,,1,,,Europe/London,0,-1.1083,50.7963
+910GPORTSLD,PLD,Portslade,0,,,1,,,Europe/London,0,-0.2065,50.8391
+910GREDHILL,RDH,Redhill,2,,,1,,,Europe/London,0,-0.1656,51.2402
+910GRYDE,RYD,Ryde Esplanade,1,,,1,,,Europe/London,0,-1.159,50.7316
+910GRYDPIER,RYP,Ryde Pier Head,2,,,1,,,Europe/London,0,-1.1594,50.7375
+910GRYE,RYE,Rye,1,,,1,,,Europe/London,0,0.7331,50.9518
+910GSHANKLN,SHN,Shanklin,1,,,1,,,Europe/London,0,-1.1793,50.6338
+910GSTPX,STP,London St Pancras International,3,,,1,,,Europe/London,0,-0.1263,51.5316
+910GTHBDGS,TBD,Three Bridges,2,,,1,,,Europe/London,0,-0.1622,51.1169
+910GTHROAKS,TOK,Three Oaks,0,,,1,,,Europe/London,0,0.6224,50.8998
+910GVICTRIC,VIC,London Victoria,3,,,1,,,Europe/London,0,-0.1441,51.4952
+910GWATFDJ,WFJ,Watford Junction,3,,,1,,,Europe/London,0,-0.3965,51.6636
+910GWNCHLSA,WSE,Winchelsea,0,,,1,,,Europe/London,0,0.6997,50.9223
+910GWORTHNG,WRH,Worthing,1,,,1,,,Europe/London,0,-0.3766,50.8186
+9400ZZLUEUS1,,Euston Underground Station,,,,0,910GEUSTON,,Europe/London,0,-0.1337,51.5282
+9400ZZLUGPK1,,Green Park Underground Station,,,,0,940GZZLUGPK,,Europe/London,0,-0.1428,51.5067
+9400ZZLUKSX1,,King's Cross St. Pancras Underground Station,,,,0,910GSTPX,,Europe/London,0,-0.1238,51.5308
+9400ZZLUOXC1,,Oxford Circus Underground Station,,,,0,940GZZLUOXC,,Europe/London,0,-0.1415,51.5152
+9400ZZLUVIC1,,Victoria Underground Station,,,,0,910GVICTRIC,,Europe/London,0,-0.1448,51.4966
+9400ZZLUWRR1,,Warren Street Underground Station,,,,0,940GZZLUWRR,,Europe/London,0,-0.1384,51.5247
+940GZZLUGPK,100,Green Park Underground Station,,,,1,,,Europe/London,0,-0.1428,51.5067
+940GZZLUOXC,101,Oxford Circus Underground Station,,,,1,,,Europe/London,0,-0.1415,51.5152
+940GZZLUWRR,102,Warren Street Underground Station,,,,1,,,Europe/London,0,-0.1384,51.5247

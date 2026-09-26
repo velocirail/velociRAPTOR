@@ -1,5 +1,6 @@
 package com.joshuaharwood.velociraptor.obabridge;
 
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,14 +15,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ExtendedGtfsDaoInitialisationTest {
 
-  private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample").toFile();
+  private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample-gb-transit").toFile();
 
   private static ExtendedGtfsRelationalDaoImpl DAO;
   private static CalendarService CALENDAR_SERVICE;
 
   @BeforeAll
   static void loadAndInitialise() {
-    DAO = GtfsDeserialiser.createNewDao(GTFS_FILE);
+    DAO = GtfsDeserialiser.createNewDao(GTFS_FILE, FeedFormat.GB_TRANSIT);
     CALENDAR_SERVICE = CalendarServiceDataFactoryImpl.createService(DAO);
     DAO.initialise();
   }

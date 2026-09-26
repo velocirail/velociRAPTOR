@@ -4,6 +4,7 @@ import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 import com.joshuaharwood.velociraptor.gtfs.FixedLink;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.FeedProfile;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
 import com.joshuaharwood.velociraptor.raptor.FootpathDestinations;
 import com.joshuaharwood.velociraptor.raptor.RouteGrouping;
@@ -64,10 +65,14 @@ public final class RaptorAlgorithmFactory {
     return assemble(dao, toStop, trips, serviceDate);
   }
 
-  /** Memoise OBA Stop -> raptor Stop so every caller sees the same Stop instance per id. */
+  /**
+   * Memoise OBA Stop -> raptor Stop so every caller sees the same Stop instance per key. The feed's profile picks
+   * the key, so a gb-transit station's boarding points all become the one station.
+   */
   private static Function<org.onebusaway.gtfs.model.Stop, Stop> stopLookup(ExtendedGtfsRelationalDaoImpl dao) {
+    final FeedProfile profile = dao.feedProfile();
     final Map<String, Stop> stopLookup = new HashMap<>(dao.getAllStops().size());
-    return obaStop -> stopLookup.computeIfAbsent(obaStop.getId().getId(), Stop::new);
+    return obaStop -> stopLookup.computeIfAbsent(profile.stopKey(obaStop), Stop::new);
   }
 
   /** Active trips on {@code serviceDate}, converted to raptor {@link Trip}s. */
@@ -112,9 +117,13 @@ public final class RaptorAlgorithmFactory {
                      .add(toTransfer(link, toStop, SECONDS_PER_DAY));
     }
 
+    // Only a stop's transfer to itself, with no trips, is its minimum interchange. gb-transit puts fixed links and
+    // splits and joins in the same file; the links are read as FixedLinks and the splits and joins are not routed on.
     final Map<Stop, Integer> interchangeTimes = dao.getAllTransfers().stream()
+      .filter(RaptorAlgorithmFactory::isInterchange)
       .collect(Collectors.toMap(t -> toStop.apply(t.getFromStop()),
-        org.onebusaway.gtfs.model.Transfer::getMinTransferTime));
+        org.onebusaway.gtfs.model.Transfer::getMinTransferTime,
+        Math::max));
 
     // Sort by first departure via the int accessor (not stopTimes().getFirst()): for an OffsetTrip
     // that is a pure int add, so the O(n log n) comparisons don't each materialise an offset stop-time
@@ -303,6 +312,14 @@ public final class RaptorAlgorithmFactory {
   }
 
   private static final int SECONDS_PER_DAY = 24 * 60 * 60;
+
+  private static boolean isInterchange(org.onebusaway.gtfs.model.Transfer transfer) {
+    return transfer.getFromStop() != null
+      && transfer.getFromStop().equals(transfer.getToStop())
+      && transfer.getFromTrip() == null
+      && transfer.getToTrip() == null
+      && transfer.isMinTransferTimeSet();
+  }
 
   /** @param dayOffsetSeconds shifts the link's wall-clock window onto the service date's time-line */
   private static Transfer toTransfer(FixedLink link, Function<org.onebusaway.gtfs.model.Stop, Stop> toStop, int dayOffsetSeconds) {

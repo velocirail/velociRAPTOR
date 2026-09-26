@@ -16,11 +16,9 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.obabridge.RaptorAlgorithmFactory;
 
-import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,11 +47,7 @@ public class FactoryBuildBenchmark {
 
     @Setup(Level.Trial)
     public void load() {
-      String override = System.getProperty("raptor.benchmark.gtfs");
-      File gtfsFile = override != null
-        ? new File(override)
-        : new File("fixtures/gtfs-sample");
-      dao = GtfsDeserialiser.createNewDao(gtfsFile);
+      dao = GtfsState.loadDao();
       calendarService = CalendarServiceDataFactoryImpl.createService(dao);
     }
   }
