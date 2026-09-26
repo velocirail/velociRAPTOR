@@ -17,6 +17,17 @@ public class ExtendedGtfsRelationalDaoImpl extends GtfsRelationalDaoImpl {
   private volatile Set<FixedLink> validFixedLinks = null;
   @Nullable
   private volatile Map<Stop, List<FixedLink>> fixedLinksByStop = null;
+  // A DAO populated by hand, as tests do, is keyed by stop_id as a dtd2gtfs feed is.
+  private FeedProfile feedProfile = Dtd2GtfsProfile.INSTANCE;
+
+  /** How this feed's stops and trips map onto the routing model. */
+  public FeedProfile feedProfile() {
+    return feedProfile;
+  }
+
+  void setFeedProfile(FeedProfile feedProfile) {
+    this.feedProfile = feedProfile;
+  }
 
   // Pre-warms all lazy indices used by RaptorAlgorithmFactory.createFromDao so that
   // subsequent parallel calls across service dates are safe (reads on fully-built maps).

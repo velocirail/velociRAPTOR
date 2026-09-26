@@ -31,7 +31,12 @@ Parameters:
 
   GtfsSourceUri:
     Type: String
-    Description: S3 URI for GTFS data (e.g., s3://bucket/gtfs-2026-04-28.zip)
+    Description: S3 URI for GTFS data (e.g., s3://bucket/gtfs-national-rail-only-2026-04-28.zip)
+
+  GtfsSourceFormat:
+    Type: String
+    AllowedValues: [gb-transit, dtd2gtfs]
+    Description: Format of the GTFS feed. gb-transit for a feed published by planarnetwork/gb-transit; dtd2gtfs is deprecated.
 
   ContainerMemory:
     Type: Number
@@ -205,6 +210,8 @@ Resources:
           Environment:
             - Name: VELOCIRAPTOR_GTFS_SOURCE_PATH
               Value: !Ref GtfsSourceUri
+            - Name: VELOCIRAPTOR_GTFS_SOURCE_FORMAT
+              Value: !Ref GtfsSourceFormat
             - Name: VELOCIRAPTOR_RAPTOR_SERVICEDATE_PRECOMPUTE
               Value: 'true'
             - Name: QUARKUS_LOG_LEVEL

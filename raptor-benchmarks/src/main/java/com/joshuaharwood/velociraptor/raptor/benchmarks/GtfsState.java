@@ -10,6 +10,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
 import com.joshuaharwood.velociraptor.obabridge.RaptorAlgorithmFactory;
@@ -21,8 +22,9 @@ import java.time.LocalTime;
  * Shared benchmark fixture: loads the GTFS dataset once per trial and constructs a {@link RaptorAlgorithm} for a
  * fixed service date.
  *
- * Override the dataset via system property {@code raptor.benchmark.gtfs} (absolute path). Defaults to the
- * artificial sample feed in fixtures/gtfs-sample, resolved relative to the current working directory.
+ * Override the dataset via system property {@code raptor.benchmark.gtfs} (absolute path) and its format via
+ * {@code raptor.benchmark.gtfs.format} ({@code gb-transit}, the default, or the deprecated {@code dtd2gtfs}). Defaults
+ * to the artificial sample feed in fixtures/gtfs-sample-gb-transit, resolved relative to the current working directory.
  */
 @State(Scope.Benchmark)
 public class GtfsState {
@@ -40,7 +42,7 @@ public class GtfsState {
 
   @Setup(Level.Trial)
   public void load() {
-    dao = GtfsDeserialiser.createNewDao(resolveGtfsFile());
+    dao = loadDao();
     calendarService = CalendarServiceDataFactoryImpl.createService(dao);
     raptor = RaptorAlgorithmFactory.createFromDao(dao, calendarService, parseServiceDate());
   }
@@ -50,11 +52,11 @@ public class GtfsState {
     return new ServiceDate(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
   }
 
-  private static File resolveGtfsFile() {
+  /** The dataset and format the system properties name, or the gb-transit sample feed. */
+  static ExtendedGtfsRelationalDaoImpl loadDao() {
     String override = System.getProperty("raptor.benchmark.gtfs");
-    if (override != null) {
-      return new File(override);
-    }
-    return new File("fixtures/gtfs-sample");
+    File gtfsFile = override != null ? new File(override) : new File("fixtures/gtfs-sample-gb-transit");
+    FeedFormat format = FeedFormat.fromConfigValue(System.getProperty("raptor.benchmark.gtfs.format", "gb-transit"));
+    return GtfsDeserialiser.createNewDao(gtfsFile, format);
   }
 }

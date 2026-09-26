@@ -2,6 +2,7 @@ package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -54,7 +55,7 @@ public class S3GtfsLoader implements GtfsLoader {
   }
 
   @Override
-  public ExtendedGtfsRelationalDaoImpl load() {
+  public ExtendedGtfsRelationalDaoImpl load(FeedFormat format) {
     if (!s3Uri.startsWith("s3://")) {
       throw new IllegalArgumentException(
         "Expected S3 URI in format s3://bucket/key, got: " + s3Uri);
@@ -86,7 +87,7 @@ public class S3GtfsLoader implements GtfsLoader {
       Log.infof("Downloaded GTFS to %s (%.2f MB)", tempFile.getAbsolutePath(), fileSizeBytes / 1024.0 / 1024.0);
 
       // Deserialize GTFS
-      ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(tempFile);
+      ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(tempFile, format);
 
       // Clean up temp file
       if (tempFile.delete()) {

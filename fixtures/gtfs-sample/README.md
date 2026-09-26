@@ -5,6 +5,15 @@ geography are real so that queries read like the ones the service answers; every
 fixed link is invented, so nothing here is derived from a licensed extract and the feed can ship
 with the repository.
 
+It is committed in three shapes. The network and the timetable are the same in each; what differs is how
+the feed says it:
+
+| directory | shape |
+|---|---|
+| `fixtures/gtfs-sample-gb-transit` | as gb-transit publishes `gtfs-national-rail-only.zip` |
+| `fixtures/gtfs-sample-gb-transit-rail-and-tfl` | as gb-transit publishes `gtfs-rail-and-tfl.zip` |
+| `fixtures/gtfs-sample` (this directory) | the deprecated dtd2gtfs format |
+
 The feed is generated, not edited. `SampleFeed` in `gtfs/src/test/java/.../gtfs/sample` is the
 source of truth and `SampleFeedGoldenTest` fails when this directory drifts from it. To change the
 network, edit the generator and run
@@ -15,9 +24,9 @@ network, edit the generator and run
 
 then read the diff before committing it.
 
-## Shape
+## The dtd2gtfs shape (deprecated)
 
-The files are in the shape the bridge reads today (dtd2gtfs style):
+This directory is in the dtd2gtfs format, which is deprecated and will be removed with it:
 
 | file | notes |
 |---|---|
@@ -28,6 +37,34 @@ The files are in the shape the bridge reads today (dtd2gtfs style):
 | `links.txt` | this project's fixed-link format: one row per window, direction and day pattern, with a mode |
 | `calendar_dates.txt` | removals only (`exception_type` 2), as gb-transit publishes them |
 | `feed_info.txt` | the window the feed is complete for: 2026-06-01 to 2026-06-28 |
+
+## The gb-transit shapes
+
+`gtfs-sample-gb-transit` is written as gb-transit writes a feed, so the reader is tested against what it will be
+given:
+
+| file | notes |
+|---|---|
+| `stops.txt` | stations are `910G` + TIPLOC with `location_type` 1 and the CRS in `stop_code`; every call is at a boarding point beneath one, `9100` + TIPLOC + platform (`9100BRGHTN5`), or `9100` + TIPLOC where the call names no platform |
+| `trips.txt` | `trip_id` is the UID and the schedule's first and last dates (`WB0900_20260601_20260628`); `trip_headsign` is the destination |
+| `agency.txt`, `routes.txt` | `agency_id` is the National Operator Code form (`=SN`); `route_id` is the ATOC code |
+| `transfers.txt` | a self-row per station for the interchange; one row per pair of stations for each fixed link, with gb-transit's `mode`, window, date and day columns; and one split/join row (`transfer_type` 4), a stand-in coupling of the 10:00 fast from VIC and the 11:25 West Coastway at BTN |
+| `areas.txt`, `stop_areas.txt` | London Terminals as a group station, which the reader leaves unread |
+
+A fixed link is published as gb-transit publishes one: the envelope of the pair's records, so the Tube and the
+ferry, which have a shorter Sunday window, are open for the Monday to Saturday hours every day. That is the one
+way the journeys differ from the dtd2gtfs shape's (`BUGS.md` §10.1).
+
+`gtfs-sample-gb-transit-rail-and-tfl` is the same without the Tube links, and with a Victoria line in their place:
+
+| station | as |
+|---|---|
+| Victoria, Euston, King's Cross St. Pancras | platforms (`9400ZZLUVIC1`) beneath the rail stations VIC, EUS and STP, so they route as those stations |
+| Green Park `100`, Oxford Circus `101`, Warren Street `102` | TfL stations of their own, under the codes gb-transit gives them |
+
+Trains run every ten minutes from 05:30 to 24:30 each way, daily, ten minutes end to end. Warren Street has a
+five minute walk to Euston with no window of its own. BTN to MKC changes at VIC onto the Victoria line and at
+EUS onto London Northwestern.
 
 ## The network
 
@@ -101,9 +138,9 @@ Monday-to-Saturday services are removed, leaving the daily (Sunday-pattern) time
 
 ## Identifiers
 
-`trip_id` is the operator digit, the two-digit pattern index and the departure hhmm, so the 09:00
-fast from BTN is `1020900`. The UID is the operator letter, the pattern letter and the hhmm:
-`WB0900`. Neither shifts when a train is added.
+In the dtd2gtfs shape `trip_id` is the operator digit, the two-digit pattern index and the departure hhmm, so the
+09:00 fast from BTN is `1020900`. The UID is the operator letter, the pattern letter and the hhmm: `WB0900`, and
+in the gb-transit shapes it leads the `trip_id`: `WB0900_20260601_20260628`. None shifts when a train is added.
 
 | operator | digit | UID letter | patterns |
 |---|---|---|---|
