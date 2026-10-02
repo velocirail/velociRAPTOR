@@ -482,8 +482,7 @@ class RaptorResourceTest {
             .body("[0].legs[1].destination", is("EUS"))
             .body("[0].legs[1].mode", is("TUBE"))
             .body("[0].legs[1].operator", nullValue())
-            .body("[0].legs[1].originTrainUid", is(""))
-            .body("[0].legs[1].destinationTrainUid", is(""))
+            .body("[0].legs[1].originTrainUid", nullValue())
             .body("[0].legs[1].originPickUpType", nullValue())
             // Leaves VIC after its 10 minute interchange, and that interchange is reported on the leg it delays.
             .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))
@@ -564,7 +563,7 @@ class RaptorResourceTest {
   @Test
   void rangeQuery_journeysMayBeginOrEndWithAFixedLinkByDefault() {
     // EUS has no trains to the south: the only way to BTN starts with the Tube. The leading and trailing rules are
-    // off by default, so it is returned, with empty train UIDs on the link as the consumer expects.
+    // off by default, so it is returned, with null train UIDs on the link.
     given()
             .queryParam("orig", "EUS")
             .queryParam("dest", "BTN")
@@ -575,8 +574,8 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", greaterThan(0))
             .body("[0].legs[0].mode", is("TUBE"))
-            .body("[0].legs[0].originTrainUid", is(""))
-            .body("[0].legs[0].destinationTrainUid", is(""));
+            .body("[0].legs[0].originTrainUid", nullValue())
+            .body("[0].legs[0].destinationTrainUid", nullValue());
 
     // ASI is reached only by the walk from AFK, which ends the journey.
     given()

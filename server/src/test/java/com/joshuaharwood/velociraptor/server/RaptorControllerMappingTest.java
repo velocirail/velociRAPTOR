@@ -68,8 +68,8 @@ class RaptorControllerMappingTest {
       .returns(Duration.ofMinutes(5), from(SimpleLeg::boardingInterchange))
       .returns("TUBE", from(SimpleLeg::mode))
       .returns(null, from(SimpleLeg::operator))
-      .returns("", from(SimpleLeg::originTrainUid))
-      .returns("", from(SimpleLeg::destinationTrainUid))
+      .returns(null, from(SimpleLeg::originTrainUid))
+      .returns(null, from(SimpleLeg::destinationTrainUid))
       .returns(null, from(SimpleLeg::originPickUpType));
     assertThat(simple.legs().get(2))
       .returns(Duration.ofMinutes(25), from(SimpleLeg::duration))
