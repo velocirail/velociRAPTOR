@@ -92,7 +92,8 @@ curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:
 ## HTTP API
 
 All endpoints are `GET` and return JSON arrays of journeys. Full parameter semantics are in
-[`server/README.md`](server/README.md).
+[`server/README.md`](server/README.md); `server/openapi/openapi.yaml` is the generated OpenAPI 3.1
+description.
 
 | Path | Returns |
 |---|---|
@@ -102,7 +103,8 @@ All endpoints are `GET` and return JSON arrays of journeys. Full parameter seman
 
 `startDate` and `endDate` are instants — ISO 8601 with a UTC offset (`2026-06-03T12:30:00+01:00`),
 the same form the responses use. A zone-less value is accepted and read as Europe/London
-wall-clock, but is deprecated and logged at WARN. Anything else is a 400.
+wall-clock, but is deprecated and logged at WARN. Anything else is a 400. Every error is an
+RFC 9457 `application/problem+json` body.
 
 ## Configuration
 

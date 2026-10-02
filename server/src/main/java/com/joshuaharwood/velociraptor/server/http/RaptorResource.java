@@ -14,6 +14,10 @@ import jakarta.ws.rs.core.Response;
 import io.quarkus.logging.Log;
 import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -31,6 +35,7 @@ import static com.joshuaharwood.velociraptor.server.http.WindowDateTimeParamConv
  */
 @ApplicationScoped
 @Path("/")
+@Tag(name = "Journey planning", description = "RAPTOR searches over the loaded GTFS feed.")
 @Produces(MediaType.APPLICATION_JSON)
 @RunOnVirtualThread
 // Sane defaults, overridable with env vars
@@ -45,11 +50,25 @@ public class RaptorResource {
     }
 
     @GET
+    @Operation(summary = "Pareto-optimal journeys in a time window",
+            description = "Every journey that is not beaten on both departure and arrival, as a flat list of "
+                    + "legs. The search covers a single service day.")
+    @APIResponse(responseCode = "200", description = "Matching journeys, empty if none run.")
+    @APIResponse(responseCode = "400",
+            description = "A window parameter is not an ISO 8601 date-time, or `orig`/`dest` also appears in `notVia`.")
+    @APIResponse(responseCode = "503",
+            description = "Server at capacity: the bulkhead is full or the query exceeded its timeout. Retry after "
+                    + "the interval in the `Retry-After` header.")
     public List<SimpleJourney> rangeQuery(
+            @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("orig") String orig,
+            @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("dest") String dest,
+            @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
             @NotNull @QueryParam("startDate") OffsetDateTime startDate,
+            @Parameter(description = "End of the search window, in the same form as `startDate`. May fall on the following day, which includes GTFS after-midnight (&gt; 24:00) departures rather than dropping them.")
             @NotNull @QueryParam("endDate") OffsetDateTime endDate,
+            @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET / orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
         validateNotVia(notVia, orig, dest);
@@ -63,11 +82,25 @@ public class RaptorResource {
 
     @GET
     @Path("detail")
+    @Operation(summary = "As the range query, with full calling points",
+            description = "The same journeys as `/`, expanded with each leg's intermediate calls, train "
+                    + "identity and operator.")
+    @APIResponse(responseCode = "200", description = "Matching journeys, empty if none run.")
+    @APIResponse(responseCode = "400",
+            description = "A window parameter is not an ISO 8601 date-time, or `orig`/`dest` also appears in `notVia`.")
+    @APIResponse(responseCode = "503",
+            description = "Server at capacity: the bulkhead is full or the query exceeded its timeout. Retry after "
+                    + "the interval in the `Retry-After` header.")
     public List<RailJourney> detailQuery(
+            @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("orig") String orig,
+            @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("dest") String dest,
+            @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
             @NotNull @QueryParam("startDate") OffsetDateTime startDate,
+            @Parameter(description = "End of the search window, in the same form as `startDate`. May fall on the following day, which includes GTFS after-midnight (&gt; 24:00) departures rather than dropping them.")
             @NotNull @QueryParam("endDate") OffsetDateTime endDate,
+            @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /detail orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
         validateNotVia(notVia, orig, dest);
@@ -81,10 +114,23 @@ public class RaptorResource {
 
     @GET
     @Path("first-arrival")
+    @Operation(summary = "Earliest arrival from a single departure time",
+            description = "One departure time rather than a window: the journeys reaching the destination "
+                    + "soonest when leaving at or after `startDate`.")
+    @APIResponse(responseCode = "200", description = "Matching journeys, empty if none run.")
+    @APIResponse(responseCode = "400",
+            description = "A window parameter is not an ISO 8601 date-time, or `orig`/`dest` also appears in `notVia`.")
+    @APIResponse(responseCode = "503",
+            description = "Server at capacity: the bulkhead is full or the query exceeded its timeout. Retry after "
+                    + "the interval in the `Retry-After` header.")
     public List<RailJourney> firstArrival(
+            @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("orig") String orig,
+            @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
             @NotBlank @QueryParam("dest") String dest,
+            @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
             @NotNull @QueryParam("startDate") OffsetDateTime startDate,
+            @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /first-arrival orig=%s dest=%s startDate=%s notVia=%s", orig, dest, startDate, notVia);
         validateNotVia(notVia, orig, dest);

@@ -24,7 +24,8 @@ All endpoints are `GET` and return JSON arrays of journeys.
   day (> 86400s) correctly includes GTFS after-midnight departures past 24:00.
 
   A zone-less value (`2026-06-03T12:30:00`) is still accepted and read as Europe/London wall-clock,
-  but is deprecated and logged at WARN. Anything else is a 400; the server log names the parameter.
+  but is deprecated and logged at WARN. Anything else is a 400 `application/problem+json` whose
+  `detail` names the parameter.
 
 A search covers a single service day. Fixed-link use is governed by the
 `velociraptor.raptor.fixedlinks.*` settings documented in the [root README](../README.md): by
@@ -38,10 +39,21 @@ curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:
 
 ## Errors
 
-- **400** for a missing parameter, for `orig` or `dest` also given in `notVia`, and for a window
-  parameter that is not an ISO 8601 date-time.
-- **503** with `Retry-After: 10` and the body `{"error": "Server at capacity, please try again later"}`
-  when the bulkhead is full or a query exceeds its timeout (`FaultToleranceExceptionMapper`).
+Every error the API returns is an RFC 9457 `application/problem+json` body, produced by
+`quarkus-http-problem`. Its `OASFilter` fills in the problem content for any error response an
+operation declares, which is why the `@APIResponse` annotations carry a description but no schema.
+
+That includes the 503 from `FaultToleranceExceptionMapper`: a saturated bulkhead or a timed-out
+query is the same shape as everything else, with `Retry-After` still set.
+
+## OpenAPI
+
+`openapi/openapi.yaml` (and `.json`) is the OpenAPI 3.1 description, generated from the JAX-RS
+annotations by `quarkus-smallrye-openapi` and rewritten on every build — treat it as output. To
+change it, change the annotations on `RaptorResource`, not the file. It is committed so clients can
+generate against it without building the server.
+
+The live document is served at `/q/openapi`, with Swagger UI at `/q/swagger-ui` in dev mode.
 
 ## Running locally
 

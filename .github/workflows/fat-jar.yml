@@ -29,13 +29,23 @@ jobs:
           name: velociraptor-server-${{ github.ref_name }}
           path: server/target/*-runner.jar
           if-no-files-found: error
+      # The package above regenerates server/openapi/, so the spec published here is the one this tag's
+      # annotations describe rather than whatever copy happened to be committed.
+      - name: Upload OpenAPI document
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: openapi-${{ github.ref_name }}
+          path: server/openapi/
+          if-no-files-found: error
       # Only on a release tag. The release is created
       # if the tag does not already have one.
-      - name: Attach the jar to the release
+      - name: Attach the OpenAPI document to the release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3.0.3
         with:
           files: |
+            server/openapi/openapi.yaml
+            server/openapi/openapi.json
             server/target/*-runner.jar
           fail_on_unmatched_files: true
           # 0.x: the HTTP API is still free to change between tags, so every release this
