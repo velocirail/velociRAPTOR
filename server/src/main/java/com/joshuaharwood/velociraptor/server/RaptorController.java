@@ -28,7 +28,6 @@ import jakarta.inject.Inject;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -40,7 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 
@@ -100,38 +98,28 @@ public class RaptorController {
   }
 
   /**
-   * @param interchange the minimum interchange at a stop, in seconds - the algorithm's per-stop table
-   * Package-private so the mapping can be unit-tested without standing up the Quarkus/S3 stack.
+   * The range endpoint's response, in the shape the production server has always sent: legs only, with the six
+   * fields its consumer reads. Package-private so the mapping can be unit-tested without the Quarkus/S3 stack.
    */
-  static SimpleJourney toSimpleJourney(Journey journey, LocalDate date, ToIntFunction<Stop> interchange) {
+  static SimpleJourney toSimpleJourney(Journey journey, LocalDate date) {
     var simpleLegs = new ArrayList<SimpleLeg>();
-    int trainLegs = 0;
     // For a leading fixed link, journey.departureTime() is the latest start that makes the first train.
     OffsetDateTime prevArrival = toOffset(date, journey.departureTime());
 
     var legs = journey.legs();
     for (int i = 0; i < legs.size(); i++) {
-      // The interchange at this leg's origin applies between the previous leg's arrival and this
-      // leg's start; the first leg has no previous leg.
-      Duration boardingInterchange = i == 0 ? null : Duration.ofSeconds(interchange.applyAsInt(legs.get(i).origin()));
       switch (legs.get(i)) {
         case Leg.TimetableLeg tl -> {
           var dep = toOffset(date, tl.stopTimes().getFirst().departureTime());
           var arr = toOffset(date, tl.stopTimes().getLast().arrivalTime());
-          String originUid = null, destUid = null, operator = null;
-          if (tl.trip() instanceof RailTrip rt) {
-            operator = operatorOf(rt.agencyId());
-            if (rt.trainUid() != null) {
-              var uids = rt.trainUid().split("_");
-              originUid = uids[0];
-              destUid = uids[uids.length - 1];
-            }
+          String originUid = null, destUid = null;
+          if (tl.trip() instanceof RailTrip rt && rt.trainUid() != null) {
+            var uids = rt.trainUid().split("_");
+            originUid = uids[0];
+            destUid = uids[uids.length - 1];
           }
-          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
-                                       tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
-                                       operator, null, Duration.between(dep, arr), boardingInterchange));
+          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid));
           prevArrival = arr;
-          trainLegs++;
         }
         case com.joshuaharwood.velociraptor.raptor.model.Leg.TransferLeg tl -> {
           // A leading fixed link starts at the journey's departure; a later one starts once the
@@ -141,27 +129,12 @@ public class RaptorController {
           var arr = dep.plusSeconds(tl.duration());
           // A fixed link has no train. Its UIDs are empty strings, not null: the consumer of this endpoint calls
           // equals("") on both, so null would break it. Keep this until consumers read null as absent.
-          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, "", "", null, null,
-                                       null, tl.mode(), Duration.between(dep, arr), boardingInterchange));
+          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, "", ""));
           prevArrival = arr;
         }
       }
     }
-    var departure = toOffset(date, journey.departureTime());
-    var arrival = toOffset(date, journey.arrivalTime());
-    return new SimpleJourney(departure, arrival, Duration.between(departure, arrival),
-                             Math.max(0, trainLegs - 1), simpleLegs);
-  }
-
-  /**
-   * The operator's ATOC code. The current feed's agency_id is the code itself (e.g. {@code GW});
-   * gb-transit publishes it in National Operator Code form with an {@code =} prefix ({@code =GW}).
-   */
-  static @org.jspecify.annotations.Nullable String operatorOf(@org.jspecify.annotations.Nullable String agencyId) {
-    if (agencyId == null) {
-      return null;
-    }
-    return agencyId.startsWith("=") ? agencyId.substring(1) : agencyId;
+    return new SimpleJourney(simpleLegs);
   }
 
   /**
@@ -185,65 +158,25 @@ public class RaptorController {
   }
 
   /**
-   * @param interchange the minimum interchange at a stop, in seconds - the algorithm's per-stop table
-   * Package-private so the mapping can be unit-tested without standing up the Quarkus/S3 stack.
+   * The detail endpoints' response, in the shape the production server has always sent. Package-private so the
+   * mapping can be unit-tested without the Quarkus/S3 stack.
    */
-  static RailJourney toRailJourney(com.joshuaharwood.velociraptor.rail.RailJourney j, ToIntFunction<Stop> interchange) {
-    var legs = new ArrayList<RailJourneyLeg>(j.legs().size());
-    for (int i = 0; i < j.legs().size(); i++) {
-      var leg = j.legs().get(i);
-      Duration boardingInterchange = i == 0 ? null : Duration.ofSeconds(interchange.applyAsInt(leg.origin()));
-      legs.add(toSmLeg(leg, boardingInterchange));
-    }
-    var departure = railJourneyDeparture(j.legs());
-    var arrival = railJourneyArrival(j.legs());
-    var trainLegs = (int) j.legs().stream().filter(leg -> leg instanceof RailLeg).count();
-    return new RailJourney(j.origin().id(), j.destination().id(), departure, arrival,
-                           departure == null || arrival == null ? null : Duration.between(departure, arrival),
-                           Math.max(0, trainLegs - 1), List.copyOf(legs));
+  static RailJourney toRailJourney(com.joshuaharwood.velociraptor.rail.RailJourney j) {
+    var legs = j.legs().stream().map(RaptorController::toSmLeg).toList();
+    return new RailJourney(j.origin().id(), j.destination().id(), legs);
   }
 
-  // A fixed-link leg carries no times of its own (its rail neighbours fix them), so the journey's
-  // ends are read from the nearest train leg and pushed out by the link, as JourneyFactory does.
-  private static @org.jspecify.annotations.Nullable OffsetDateTime railJourneyDeparture(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
-    long linkSeconds = 0;
-    for (var leg : legs) {
-      switch (leg) {
-        case RailLeg rl -> {
-          return atLondon(rl.departureTime()).minusSeconds(linkSeconds);
-        }
-        case FixedLink fl -> linkSeconds += fl.durationSeconds() + fl.destinationInterchange();
-      }
-    }
-    return null;
-  }
-
-  private static @org.jspecify.annotations.Nullable OffsetDateTime railJourneyArrival(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
-    long linkSeconds = 0;
-    for (var leg : legs.reversed()) {
-      switch (leg) {
-        case RailLeg rl -> {
-          return atLondon(rl.arrivalTime()).plusSeconds(linkSeconds);
-        }
-        case FixedLink fl -> linkSeconds += fl.durationSeconds() + fl.originInterchange();
-      }
-    }
-    return null;
-  }
-
-  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @org.jspecify.annotations.Nullable Duration boardingInterchange) {
+  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg) {
     return switch (leg) {
       case RailLeg rl -> new RailJourneyLeg.RailLeg(rl.origin().id(), rl.destination().id(),
                                                     atLondon(rl.departureTime()), atLondon(rl.arrivalTime()),
                                                     rl.originTrainUid(), rl.destinationTrainUid(),
-                                                    toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex(),
-                                                    rl.trainTrip().stopTimes().get(rl.startIndex()).pickUpType(),
-                                                    rl.trainTrip().stopTimes().get(rl.endIndex()).dropOffType(),
-                                                    operatorOf(rl.trainTrip().agencyId()),
-                                                    rl.duration(), boardingInterchange);
-      case FixedLink fl -> new RailJourneyLeg.FixedLink(fl.origin().id(), fl.destination().id(),
-                                                        atLondon(fl.departureTime()), atLondon(fl.arrivalTime()),
-                                                        fl.mode(), fl.duration(), boardingInterchange);
+                                                    toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex());
+      // The rail model now knows a fixed link's times, but the production response has always carried them as
+      // null on this endpoint. They stay null until the response-shape change ships on its own.
+      case FixedLink fl -> new RailJourneyLeg.FixedLink(fl.origin().id(), fl.destination().id(), null, null,
+                                                        fl.durationSeconds(), fl.originInterchange(),
+                                                        fl.destinationInterchange());
     };
   }
 
@@ -265,8 +198,7 @@ public class RaptorController {
 
   private static RailStopDateTime toSmStopDateTime(com.joshuaharwood.velociraptor.rail.StopDateTime st) {
     return new RailStopDateTime(st.stop()
-                                          .id(), atLondon(st.departureTime()), atLondon(st.arrivalTime()), st.isPickUp(), st.isDropOff(),
-                                st.pickUpType(), st.dropOffType());
+                                          .id(), atLondon(st.departureTime()), atLondon(st.arrivalTime()), st.isPickUp(), st.isDropOff());
   }
 
   @Startup
@@ -304,7 +236,7 @@ public class RaptorController {
     var results = new RangeQuery<>(raptor, new JourneyFactory(), config.fixedLinkRules())
         .plan(new Stop(origin), new Stop(destination), date, startTime, endTime, toStops(notVia));
     rangeQueryJourneys.record(results.size());
-    return results.stream().map(j -> toSimpleJourney(j, date, raptor::interchangeTime)).toList();
+    return results.stream().map(j -> toSimpleJourney(j, date)).toList();
   }
 
   public List<RailJourney> detail(String origin, String destination, LocalDate date, int startTime, int endTime, List<String> notVia) {
@@ -312,7 +244,7 @@ public class RaptorController {
     var raptor = getRaptorAlgorithmByDate(date, false);
     var results = new RangeQuery<>(raptor, new RailJourneyFactory(date), config.fixedLinkRules())
         .plan(new Stop(origin), new Stop(destination), date, startTime, endTime, toStops(notVia));
-    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime)).toList();
+    return results.stream().map(RaptorController::toRailJourney).toList();
   }
 
   public List<RailJourney> firstArrivalDetail(String origin, String destination, LocalDate date, int startTime, List<String> notVia) {
@@ -320,7 +252,7 @@ public class RaptorController {
     var raptor = getRaptorAlgorithmByDate(date, false);
     var results = new DepartAfterQuery<>(raptor, new RailJourneyFactory(date), config.fixedLinkRules())
         .plan(new Stop(origin), new Stop(destination), date, startTime, toStops(notVia));
-    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime)).toList();
+    return results.stream().map(RaptorController::toRailJourney).toList();
   }
 
   private static Set<Stop> toStops(List<String> ids) {

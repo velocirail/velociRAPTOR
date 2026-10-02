@@ -59,27 +59,15 @@ class RaptorResourceTest {
             .body("[0].legs[0].arrivalTime",   is(TRIP_ARRIVAL))
             .body("[0].legs[0].originTrainUid", is(TRAIN_UID))
             .body("[0].legs[0].destinationTrainUid", is(TRAIN_UID))
-            .body("[0].legs[0].originPickUpType", is("REGULAR"))
-            .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
-            .body("[0].legs[0].operator", is("SN"))
-            .body("[0].legs[0].mode", nullValue())
-            .body("[0].legs[0].duration", is("PT1H"))
-            .body("[0].legs[0].boardingInterchange", nullValue())
-            .body("[0].departureTime", is(TRIP_DEPARTURE))
-            .body("[0].arrivalTime", is(TRIP_ARRIVAL))
-            .body("[0].duration", is("PT1H"))
-            .body("[0].changes", is(0))
+            .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
+            .body("[0].legs[-1].arrivalTime", is(TRIP_ARRIVAL))
             .body("[1].legs[0].departureTime", is(DATE + "T09:10:00+01:00"))
             .body("[1].legs[0].arrivalTime", is(DATE + "T10:35:00+01:00"))
-            .body("[1].changes", is(0))
             .body("[2].legs", hasSize(2))
-            .body("[2].legs[0].operator", is("TL"))
             .body("[2].legs[0].destination", is("ECR"))
             .body("[2].legs[1].origin", is("ECR"))
-            .body("[2].legs[1].boardingInterchange", is("PT5M"))
-            .body("[2].departureTime", is(DATE + "T09:20:00+01:00"))
-            .body("[2].arrivalTime", is(DATE + "T10:35:00+01:00"))
-            .body("[2].changes", is(1));
+            .body("[2].legs[0].departureTime", is(DATE + "T09:20:00+01:00"))
+            .body("[2].legs[-1].arrivalTime", is(DATE + "T10:35:00+01:00"));
   }
 
   @Test
@@ -93,10 +81,10 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", is(3))
-            .body("[0].departureTime", is(TRIP_DEPARTURE))
-            .body("[0].arrivalTime", is(TRIP_ARRIVAL))
-            .body("[1].departureTime", is(DATE + "T09:10:00+01:00"))
-            .body("[2].departureTime", is(DATE + "T09:20:00+01:00"));
+            .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
+            .body("[0].legs[-1].arrivalTime", is(TRIP_ARRIVAL))
+            .body("[1].legs[0].departureTime", is(DATE + "T09:10:00+01:00"))
+            .body("[2].legs[0].departureTime", is(DATE + "T09:20:00+01:00"));
   }
 
   @Test
@@ -110,11 +98,11 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", is(3))
-            .body("[0].departureTime", is(TRIP_DEPARTURE));
+            .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE));
   }
 
   @Test
-  void rangeQuery_returns400ProblemForAMalformedDate() {
+  void rangeQuery_returns400ForAMalformedDate() {
     given()
             .queryParam("orig", ORIG)
             .queryParam("dest", DEST)
@@ -122,9 +110,7 @@ class RaptorResourceTest {
             .queryParam("endDate", DATE + "T09:30:00+01:00")
             .when().get("/")
             .then()
-            .statusCode(400)
-            .contentType("application/problem+json")
-            .body("detail", startsWith("startDate=" + DATE + " 08:30 "));
+            .statusCode(400);
   }
 
   @Test
@@ -138,8 +124,8 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", greaterThan(2))
-            .body("departureTime", everyItem(greaterThanOrEqualTo(DATE + "T08:30:00")))
-            .body("departureTime", everyItem(lessThanOrEqualTo(DATE + "T11:30:00")));
+            .body("collect { it.legs[0].departureTime }", everyItem(greaterThanOrEqualTo(DATE + "T08:30:00")))
+            .body("collect { it.legs[0].departureTime }", everyItem(lessThanOrEqualTo(DATE + "T11:30:00")));
   }
 
   @Test
@@ -228,7 +214,7 @@ class RaptorResourceTest {
             .body("size()", is(2))
             .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
             .body("[1].legs[0].destination", is("LBG"))
-            .body("[1].legs[1].mode", is("TUBE"))
+            .body("[1].legs[1].originTrainUid", is(""))
             .body("legs.flatten().origin", not(hasItem("CLJ")))
             .body("legs.flatten().destination", not(hasItem("CLJ")));
   }
@@ -253,21 +239,11 @@ class RaptorResourceTest {
             .body("[0].legs[0].originTrainUid", is(TRAIN_UID))
             .body("[0].legs[0].trainTrip.tripId", is(TRIP_ID))
             .body("[0].legs[0].trainTrip.trainUid", is(TRAIN_UID))
-            .body("[0].legs[0].originPickUpType", is("REGULAR"))
-            .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
-            .body("[0].legs[0].trainTrip.stopTimes[0].pickUpType", is("REGULAR"))
             .body("[0].legs[0].trainTrip.stopTimes[0].pickUp", is(true))
-            .body("[0].legs[0].trainTrip.stopTimes[0].dropOffType", is("NONE"))
             .body("[0].legs[0].trainTrip.stopTimes[0].dropOff", is(false))
             .body("[0].legs[0].trainTrip.stopTimes", hasSize(5))
-            .body("[0].legs[0].type", is("RAIL_LEG"))
-            .body("[0].legs[0].operator", is("SN"))
-            .body("[0].legs[0].duration", is("PT1H"))
-            .body("[0].legs[0].boardingInterchange", nullValue())
-            .body("[0].departureTime", is(TRIP_DEPARTURE))
-            .body("[0].arrivalTime", is(TRIP_ARRIVAL))
-            .body("[0].duration", is("PT1H"))
-            .body("[0].changes", is(0));
+            .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
+            .body("[0].legs[-1].arrivalTime", is(TRIP_ARRIVAL));
   }
 
   @Test
@@ -450,9 +426,7 @@ class RaptorResourceTest {
             .body("[0].legs[0].departureTime", is(OWL_DEPARTURE))
             .body("[0].legs[0].trainTrip.tripId", is("1052415"))
             .body("[0].legs[0].trainTrip.stopTimes[1].stop", is("ECR"))
-            .body("[0].legs[0].trainTrip.stopTimes[1].pickUpType", is("NONE"))
-            .body("[0].legs[0].trainTrip.stopTimes[1].pickUp", is(false))
-            .body("[0].legs[0].trainTrip.stopTimes[1].dropOffType", is("REGULAR"));
+            .body("[0].legs[0].trainTrip.stopTimes[1].pickUp", is(false));
   }
 
   // --- Fixed links ---
@@ -476,35 +450,26 @@ class RaptorResourceTest {
             .body("[0].legs[0].destination", is("VIC"))
             .body("[0].legs[0].departureTime", is(DATE + "T13:00:00+01:00"))
             .body("[0].legs[0].arrivalTime", is(DATE + "T14:00:00+01:00"))
-            .body("[0].legs[0].operator", is("SN"))
-            .body("[0].legs[0].boardingInterchange", nullValue())
             .body("[0].legs[1].origin", is("VIC"))
             .body("[0].legs[1].destination", is("EUS"))
-            .body("[0].legs[1].mode", is("TUBE"))
-            .body("[0].legs[1].operator", nullValue())
+            .body("[0].legs[1].originTrainUid", is(""))
             .body("[0].legs[1].originTrainUid", is(""))
             .body("[0].legs[1].destinationTrainUid", is(""))
-            .body("[0].legs[1].originPickUpType", nullValue())
-            // Leaves VIC after its 10 minute interchange, and that interchange is reported on the leg it delays.
+            // Leaves VIC once its 10 minute interchange has passed.
             .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))
             .body("[0].legs[1].arrivalTime", is(DATE + "T14:25:00+01:00"))
-            .body("[0].legs[1].duration", is("PT15M"))
-            .body("[0].legs[1].boardingInterchange", is("PT10M"))
             .body("[0].legs[2].origin", is("EUS"))
             .body("[0].legs[2].destination", is("MKC"))
             .body("[0].legs[2].departureTime", is(DATE + "T14:50:00+01:00"))
             .body("[0].legs[2].arrivalTime", is(DATE + "T15:25:00+01:00"))
-            .body("[0].legs[2].operator", is("LM"))
             .body("[0].legs[2].originTrainUid", is("MA1450"))
-            .body("[0].legs[2].boardingInterchange", is("PT10M"))
-            .body("[0].departureTime", is(DATE + "T13:00:00+01:00"))
-            .body("[0].arrivalTime", is(DATE + "T15:25:00+01:00"))
-            .body("[0].duration", is("PT2H25M"))
-            .body("[0].changes", is(1));
+            .body("[0].legs[0].departureTime", is(DATE + "T13:00:00+01:00"))
+            .body("[0].legs[-1].arrivalTime", is(DATE + "T15:25:00+01:00"));
   }
 
   @Test
   void detail_crossLondonJourneyRendersTheTubeLegAsAFixedLeg() {
+    // The production shape: a fixed leg carries its transit time and both interchanges, and no times of its own.
     given()
             .queryParam("orig", "BTN")
             .queryParam("dest", "MKC")
@@ -515,17 +480,16 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", is(1))
             .body("[0].legs", hasSize(3))
-            .body("[0].legs[0].type", is("RAIL_LEG"))
-            .body("[0].legs[1].type", is("FIXED_LEG"))
-            .body("[0].legs[1].mode", is("TUBE"))
-            .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))
-            .body("[0].legs[1].arrivalTime", is(DATE + "T14:25:00+01:00"))
-            .body("[0].legs[1].duration", is("PT15M"))
-            .body("[0].legs[1].boardingInterchange", is("PT10M"))
-            .body("[0].legs[2].type", is("RAIL_LEG"))
-            .body("[0].legs[2].operator", is("LM"))
-            .body("[0].legs[2].boardingInterchange", is("PT10M"))
-            .body("[0].changes", is(1));
+            .body("[0].legs[0].trainTrip.trainUid", is("WB1300"))
+            .body("[0].legs[1].origin", is("VIC"))
+            .body("[0].legs[1].destination", is("EUS"))
+            .body("[0].legs[1].departureTime", nullValue())
+            .body("[0].legs[1].arrivalTime", nullValue())
+            .body("[0].legs[1].durationSeconds", is(900))
+            .body("[0].legs[1].originInterchange", is(600))
+            .body("[0].legs[1].destinationInterchange", is(600))
+            .body("[0].legs[1].trainTrip", nullValue())
+            .body("[0].legs[2].trainTrip.trainUid", is("MA1450"));
   }
 
   @Test
@@ -543,12 +507,11 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", is(1))
             .body("[0].legs", hasSize(3))
-            .body("[0].legs[1].mode", is("FERRY"))
+            .body("[0].legs[1].originTrainUid", is(""))
             .body("[0].legs[1].origin", is("RYP"))
             .body("[0].legs[1].destination", is("PMH"))
-            .body("[0].legs[1].duration", is("PT22M"))
             .body("[0].legs[2].departureTime", is("2026-06-06T08:05:00+01:00"))
-            .body("[0].arrivalTime", is("2026-06-06T09:15:00+01:00"));
+            .body("[0].legs[-1].arrivalTime", is("2026-06-06T09:15:00+01:00"));
 
     given()
             .queryParam("orig", "SHN")
@@ -574,7 +537,7 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", greaterThan(0))
-            .body("[0].legs[0].mode", is("TUBE"))
+            .body("[0].legs[0].originTrainUid", is(""))
             .body("[0].legs[0].originTrainUid", is(""))
             .body("[0].legs[0].destinationTrainUid", is(""));
 
@@ -589,7 +552,7 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", greaterThan(0))
             .body("[0].legs[-1].destination", is("ASI"))
-            .body("[0].legs[-1].mode", is("WALK"));
+            .body("[0].legs[-1].originTrainUid", is(""));
   }
 
   // --- Calendars ---
@@ -633,8 +596,8 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("departureTime", hasItem(DATE + "T22:00:00+01:00"))
-            .body("departureTime", not(hasItem(DATE + "T22:05:00+01:00")));
+            .body("collect { it.legs[0].departureTime }", hasItem(DATE + "T22:00:00+01:00"))
+            .body("collect { it.legs[0].departureTime }", not(hasItem(DATE + "T22:05:00+01:00")));
 
     String overlayDay = "2026-06-24";
     given()
@@ -645,14 +608,14 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("departureTime", hasItem(overlayDay + "T22:05:00+01:00"))
-            .body("departureTime", not(hasItem(overlayDay + "T22:00:00+01:00")));
+            .body("collect { it.legs[0].departureTime }", hasItem(overlayDay + "T22:05:00+01:00"))
+            .body("collect { it.legs[0].departureTime }", not(hasItem(overlayDay + "T22:00:00+01:00")));
   }
 
   // --- Request stops ---
 
   @Test
-  void rangeQuery_reportsRequestStopsOnTheLegEnds() {
+  void rangeQuery_boardsAndAlightsAtRequestStops() {
     // Doleham is a request stop on the Marshlink: the 12:45 from Hastings sets down there at 13:00.
     given()
             .queryParam("orig", "HGS")
@@ -663,8 +626,6 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", is(1))
-            .body("[0].legs[0].originPickUpType", is("REGULAR"))
-            .body("[0].legs[0].destinationDropOffType", is("COORDINATE_WITH_DRIVER"))
             .body("[0].legs[0].arrivalTime", is(DATE + "T13:00:00+01:00"));
 
     given()
@@ -675,9 +636,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("size()", is(1))
-            .body("[0].legs[0].originPickUpType", is("COORDINATE_WITH_DRIVER"))
-            .body("[0].legs[0].destinationDropOffType", is("REGULAR"));
+            .body("size()", is(1));
   }
 
   // --- Validation ---
