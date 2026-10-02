@@ -1,15 +1,18 @@
 package com.joshuaharwood.velociraptor.server;
 
+import com.joshuaharwood.velociraptor.raptor.FixedLinkRules;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.virtual.ShouldNotPin;
 import io.quarkus.test.junit.virtual.VirtualThreadUnit;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Integration tests against the artificial sample feed in {@code fixtures/gtfs-sample} (see its README for the
@@ -522,6 +525,15 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", is(0));
+  }
+
+  @Inject
+  RaptorAlgorithmConfig algorithmConfig;
+
+  @Test
+  void noFixedLinkRuleAppliesByDefault() {
+    // The production server applied none of them; each changes which journeys come back, so each is opt-in.
+    assertEquals(FixedLinkRules.NONE, algorithmConfig.fixedLinkRules());
   }
 
   @Test

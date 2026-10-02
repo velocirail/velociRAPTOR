@@ -116,7 +116,7 @@ once into `RaptorAlgorithmConfig` and logged at startup.
 | `velociraptor.raptor.servicedate.precompute` | `true` | Build the algorithm for every service date at startup; readiness waits for it |
 | `velociraptor.raptor.fixedlinks.forbidleading` | `false` | A journey may not begin with a fixed link |
 | `velociraptor.raptor.fixedlinks.forbidtrailing` | `false` | A journey may not end with a fixed link |
-| `velociraptor.raptor.fixedlinks.forbidcontiguous` | `true` | A journey may not take two fixed links in a row |
+| `velociraptor.raptor.fixedlinks.forbidcontiguous` | `false` | A journey may not take two fixed links in a row |
 
 ## Fixed links
 
