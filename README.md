@@ -92,8 +92,7 @@ curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:
 ## HTTP API
 
 All endpoints are `GET` and return JSON arrays of journeys. Full parameter semantics are in
-[`server/README.md`](server/README.md); `server/openapi/openapi.yaml` is the generated OpenAPI 3.1
-description.
+[`server/README.md`](server/README.md).
 
 | Path | Returns |
 |---|---|
@@ -103,8 +102,7 @@ description.
 
 `startDate` and `endDate` are instants — ISO 8601 with a UTC offset (`2026-06-03T12:30:00+01:00`),
 the same form the responses use. A zone-less value is accepted and read as Europe/London
-wall-clock, but is deprecated and logged at WARN. Anything else is a 400. Every error is an
-RFC 9457 `application/problem+json` body.
+wall-clock, but is deprecated and logged at WARN. Anything else is a 400.
 
 ## Configuration
 
@@ -116,8 +114,8 @@ once into `RaptorAlgorithmConfig` and logged at startup.
 |---|---|---|
 | `velociraptor.gtfs.source.path` | `../fixtures/gtfs-sample` | GTFS to load: a local zip or directory, or an `s3://bucket/key` URI |
 | `velociraptor.raptor.servicedate.precompute` | `true` | Build the algorithm for every service date at startup; readiness waits for it |
-| `velociraptor.raptor.fixedlinks.forbidleading` | `true` | A journey may not begin with a fixed link |
-| `velociraptor.raptor.fixedlinks.forbidtrailing` | `true` | A journey may not end with a fixed link |
+| `velociraptor.raptor.fixedlinks.forbidleading` | `false` | A journey may not begin with a fixed link |
+| `velociraptor.raptor.fixedlinks.forbidtrailing` | `false` | A journey may not end with a fixed link |
 | `velociraptor.raptor.fixedlinks.forbidcontiguous` | `true` | A journey may not take two fixed links in a row |
 
 ## Fixed links
