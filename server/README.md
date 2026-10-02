@@ -28,7 +28,7 @@ All endpoints are `GET` and return JSON arrays of journeys.
 
 A search covers a single service day. Fixed-link use is governed by the
 `velociraptor.raptor.fixedlinks.*` settings documented in the [root README](../README.md): by
-default a journey may begin or end with a fixed link but may not use two in a row.
+default none of them applies: a journey may begin or end with a fixed link, or use two in a row.
 
 ### Example
 
