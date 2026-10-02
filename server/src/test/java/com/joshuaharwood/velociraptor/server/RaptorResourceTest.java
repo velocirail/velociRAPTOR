@@ -479,7 +479,8 @@ class RaptorResourceTest {
             .body("[0].legs[1].destination", is("EUS"))
             .body("[0].legs[1].mode", is("TUBE"))
             .body("[0].legs[1].operator", nullValue())
-            .body("[0].legs[1].originTrainUid", nullValue())
+            .body("[0].legs[1].originTrainUid", is(""))
+            .body("[0].legs[1].destinationTrainUid", is(""))
             .body("[0].legs[1].originPickUpType", nullValue())
             // Leaves VIC after its 10 minute interchange, and that interchange is reported on the leg it delays.
             .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))

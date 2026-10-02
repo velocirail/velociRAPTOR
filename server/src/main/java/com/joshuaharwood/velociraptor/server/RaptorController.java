@@ -139,7 +139,9 @@ public class RaptorController {
           var dep = i == 0 ? toOffset(date, journey.departureTime())
                            : prevArrival.plusSeconds(tl.originInterchange());
           var arr = dep.plusSeconds(tl.duration());
-          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, null, null, null, null,
+          // A fixed link has no train. Its UIDs are empty strings, not null: the consumer of this endpoint calls
+          // equals("") on both, so null would break it. Keep this until consumers read null as absent.
+          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, "", "", null, null,
                                        null, tl.mode(), Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
         }
