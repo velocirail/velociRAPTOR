@@ -116,8 +116,8 @@ once into `RaptorAlgorithmConfig` and logged at startup.
 |---|---|---|
 | `velociraptor.gtfs.source.path` | `../fixtures/gtfs-sample` | GTFS to load: a local zip or directory, or an `s3://bucket/key` URI |
 | `velociraptor.raptor.servicedate.precompute` | `true` | Build the algorithm for every service date at startup; readiness waits for it |
-| `velociraptor.raptor.fixedlinks.forbidleading` | `true` | A journey may not begin with a fixed link |
-| `velociraptor.raptor.fixedlinks.forbidtrailing` | `true` | A journey may not end with a fixed link |
+| `velociraptor.raptor.fixedlinks.forbidleading` | `false` | A journey may not begin with a fixed link |
+| `velociraptor.raptor.fixedlinks.forbidtrailing` | `false` | A journey may not end with a fixed link |
 | `velociraptor.raptor.fixedlinks.forbidcontiguous` | `true` | A journey may not take two fixed links in a row |
 
 ## Fixed links

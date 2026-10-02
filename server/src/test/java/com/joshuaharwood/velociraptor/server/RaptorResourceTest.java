@@ -214,7 +214,8 @@ class RaptorResourceTest {
 
   @Test
   void rangeQuery_notViaRemovesOnlyTheTrainsThatCallThere() {
-    // Only the stoppers call at Clapham Junction, so ruling it out leaves the 09:00 fast alone.
+    // Only the stoppers call at Clapham Junction, so ruling it out leaves the 09:00 fast and the 09:20 Thameslink to
+    // London Bridge with the Tube on to Victoria, which never touches CLJ.
     given()
             .queryParam("orig", ORIG)
             .queryParam("dest", DEST)
@@ -224,8 +225,10 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("size()", is(1))
+            .body("size()", is(2))
             .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
+            .body("[1].legs[0].destination", is("LBG"))
+            .body("[1].legs[1].mode", is("TUBE"))
             .body("legs.flatten().origin", not(hasItem("CLJ")))
             .body("legs.flatten().destination", not(hasItem("CLJ")));
   }
@@ -294,7 +297,7 @@ class RaptorResourceTest {
             .when().get("/detail")
             .then()
             .statusCode(200)
-            .body("size()", is(1))
+            .body("size()", is(2))
             .body("legs.flatten().origin", not(hasItem("CLJ")))
             .body("legs.flatten().destination", not(hasItem("CLJ")));
   }
@@ -559,8 +562,9 @@ class RaptorResourceTest {
   }
 
   @Test
-  void rangeQuery_journeysMayNotBeginOrEndWithAFixedLink() {
-    // EUS has no trains to the south: the only way to BTN starts with the Tube, which the default rules forbid.
+  void rangeQuery_journeysMayBeginOrEndWithAFixedLinkByDefault() {
+    // EUS has no trains to the south: the only way to BTN starts with the Tube. The leading and trailing rules are
+    // off by default, so it is returned, with empty train UIDs on the link as the consumer expects.
     given()
             .queryParam("orig", "EUS")
             .queryParam("dest", "BTN")
@@ -569,9 +573,12 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("size()", is(0));
+            .body("size()", greaterThan(0))
+            .body("[0].legs[0].mode", is("TUBE"))
+            .body("[0].legs[0].originTrainUid", is(""))
+            .body("[0].legs[0].destinationTrainUid", is(""));
 
-    // ASI is reached only by the walk from AFK, which would end the journey.
+    // ASI is reached only by the walk from AFK, which ends the journey.
     given()
             .queryParam("orig", "HGS")
             .queryParam("dest", "ASI")
@@ -580,7 +587,9 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("size()", is(0));
+            .body("size()", greaterThan(0))
+            .body("[0].legs[-1].destination", is("ASI"))
+            .body("[0].legs[-1].mode", is("WALK"));
   }
 
   // --- Calendars ---
