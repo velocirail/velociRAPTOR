@@ -71,7 +71,7 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
   private List<Leg> getJourneyLegs(Map<Stop, Map<Integer, ResultConnectionIndex>> kConnections,
                                    int k,
                                    Stop finalDestination) {
-    List<Leg> legs = new ArrayList<>();
+    List<Untimed> legs = new ArrayList<>();
     Stop previousOrigin = finalDestination;
 
     int i = k;
@@ -108,7 +108,7 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
 
           EndpointTrainUids uids = railTrip.trainUid() != null ? getEndpointTrainUids(railTrip.trainUid()) : null;
 
-          legs.add(new Leg.RailLeg(
+          legs.add(new Train(new Leg.RailLeg(
                   origin,
                   destination,
                   toDateTime(originStopTime.departureTime()),
@@ -118,16 +118,13 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
                   toTrainTrip(railTrip, stopTimes),
                   startIndex,
                   endIndex
-          ));
+          )));
           previousOrigin = origin;
         }
-        case TransferLeg(
-                Stop origin, Stop destination, int duration, int _, int _, int originInterchange,
-                int destinationInterchange, String mode
-        ) -> {
-          // Times are filled in by withFixedLinkTimes once the neighbouring train legs are known.
-          legs.add(new Leg.FixedLink(origin, destination, null, null, duration, originInterchange, destinationInterchange, mode));
-          previousOrigin = origin;
+        case TransferLeg link -> {
+          // Timed by withFixedLinkTimes once the neighbouring train legs are known.
+          legs.add(new Link(link));
+          previousOrigin = link.origin();
         }
       }
       i--;
@@ -136,6 +133,13 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
     return withFixedLinkTimes(legs.reversed());
   }
 
+  /** A leg as the scan records it: a train leg, or a fixed link whose times follow from the trains around it. */
+  private sealed interface Untimed permits Train, Link {}
+
+  private record Train(Leg.RailLeg leg) implements Untimed {}
+
+  private record Link(TransferLeg link) implements Untimed {}
+
   /**
    * A fixed link has no timetable of its own; its times follow from the trains around it, using the
    * scan's own arithmetic. A link after a leg starts when that leg arrives plus the interchange at
@@ -143,31 +147,37 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
    * link) must end an interchange before that leg departs, and so starts a duration earlier - the
    * latest start that still makes the connection. (The TS reference left these null; BUGS.md 4.2.)
    */
-  private static List<Leg> withFixedLinkTimes(List<Leg> legs) {
-    // Nothing to do without a link; nothing to anchor on without a train (a link-only journey is
-    // dropped by the caller anyway).
-    if (legs.stream().noneMatch(leg -> leg instanceof Leg.FixedLink) || legs.stream().noneMatch(leg -> leg instanceof Leg.RailLeg)) {
-      return legs;
-    }
-    Leg[] timed = legs.toArray(Leg[]::new);
+  private static List<Leg> withFixedLinkTimes(List<Untimed> untimed) {
     int firstTrain = 0;
-    while (!(timed[firstTrain] instanceof Leg.RailLeg)) {
+    while (firstTrain < untimed.size() && !(untimed.get(firstTrain) instanceof Train)) {
       firstTrain++;
     }
-    for (int i = firstTrain + 1; i < timed.length; i++) {
-      if (timed[i] instanceof Leg.FixedLink link) {
-        LocalDateTime departure = timed[i - 1].arrivalTime().plusSeconds(link.originInterchange());
-        timed[i] = new Leg.FixedLink(link.origin(), link.destination(), departure, departure.plusSeconds(link.durationSeconds()),
-                                     link.durationSeconds(), link.originInterchange(), link.destinationInterchange(), link.mode());
-      }
+    // Nothing to anchor on without a train. A link-only journey has no legs, and the caller drops it.
+    if (firstTrain == untimed.size()) {
+      return List.of();
     }
+    Leg[] legs = new Leg[untimed.size()];
+    for (int i = firstTrain; i < legs.length; i++) {
+      legs[i] = switch (untimed.get(i)) {
+        case Train train -> train.leg();
+        case Link(TransferLeg link) -> {
+          LocalDateTime departure = legs[i - 1].arrivalTime().plusSeconds(link.originInterchange());
+          yield fixedLink(link, departure, departure.plusSeconds(link.duration()));
+        }
+      };
+    }
+    // Everything before the first train is a link.
     for (int i = firstTrain - 1; i >= 0; i--) {
-      Leg.FixedLink link = (Leg.FixedLink) timed[i];
-      LocalDateTime arrival = timed[i + 1].departureTime().minusSeconds(link.destinationInterchange());
-      timed[i] = new Leg.FixedLink(link.origin(), link.destination(), arrival.minusSeconds(link.durationSeconds()), arrival,
-                                   link.durationSeconds(), link.originInterchange(), link.destinationInterchange(), link.mode());
+      TransferLeg link = ((Link) untimed.get(i)).link();
+      LocalDateTime arrival = legs[i + 1].departureTime().minusSeconds(link.destinationInterchange());
+      legs[i] = fixedLink(link, arrival.minusSeconds(link.duration()), arrival);
     }
-    return List.of(timed);
+    return List.of(legs);
+  }
+
+  private static Leg.FixedLink fixedLink(TransferLeg link, LocalDateTime departure, LocalDateTime arrival) {
+    return new Leg.FixedLink(link.origin(), link.destination(), departure, arrival, link.duration(),
+                             link.originInterchange(), link.destinationInterchange(), link.mode());
   }
 
   private LocalDateTime toDateTime(int secondsSinceMidnight) {

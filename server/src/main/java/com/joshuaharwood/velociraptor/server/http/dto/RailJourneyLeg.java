@@ -50,7 +50,7 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
                    int endIndex,
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
-                   @Schema(nullable = true) @Nullable String operator,
+                   String operator,
                    Duration duration,
                    @Schema(nullable = true) @Nullable Duration boardingInterchange) implements RailJourneyLeg {
         // type() is not a record component, so Jackson only writes it when told to.

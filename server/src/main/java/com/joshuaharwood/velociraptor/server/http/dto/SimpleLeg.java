@@ -46,7 +46,7 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
      *                            TfL trip does not
      * @param destinationTrainUid the train UID at the destination, which differs from the origin's where
      *                            an association changed the headcode; {@code null} as above
-     * @param operator            the operator's code; {@code null} where the trip has no agency
+     * @param operator            the operator's code
      */
     @Schema(name = "SimpleRailLeg", requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime",
         "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "duration",
@@ -59,7 +59,7 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
                    @Schema(nullable = true) @Nullable String destinationTrainUid,
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
-                   @Schema(nullable = true) @Nullable String operator,
+                   String operator,
                    Duration duration,
                    @Schema(nullable = true) @Nullable Duration boardingInterchange) implements SimpleLeg {
         // type() is not a record component, so Jackson only writes it when told to.
