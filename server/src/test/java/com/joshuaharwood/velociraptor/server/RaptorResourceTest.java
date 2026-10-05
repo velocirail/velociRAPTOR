@@ -761,8 +761,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter orig is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -775,8 +774,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter orig is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -788,8 +786,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter dest is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -801,8 +798,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter startDate is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -814,8 +810,7 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter endDate is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -827,8 +822,7 @@ class RaptorResourceTest {
             .when().get("/detail")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter orig is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -840,8 +834,7 @@ class RaptorResourceTest {
             .when().get("/detail")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter endDate is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -852,8 +845,7 @@ class RaptorResourceTest {
             .when().get("/first-arrival")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter orig is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
   @Test
@@ -864,25 +856,23 @@ class RaptorResourceTest {
             .when().get("/first-arrival")
             .then()
             .statusCode(400)
-            .contentType(startsWith("application/problem+json"))
-            .body("detail", is("query parameter startDate is required."));
+            .contentType(startsWith("application/problem+json"));
   }
 
-  // --- Errors outside the endpoints: still problems, with a detail that says what to do ---
+  // --- Errors the framework raises: problems in the library's own wording ---
 
   @Test
-  void anUnknownPathIsA404ProblemNamingTheEndpoints() {
+  void anUnknownPathIsA404Problem() {
     given()
             .when().get("/journeys")
             .then()
             .statusCode(404)
             .contentType(startsWith("application/problem+json"))
-            .body("title", is("Not Found"))
-            .body("detail", is("There is no endpoint at /journeys. The endpoints are GET /, GET /detail and GET /first-arrival."));
+            .body("title", is("Not Found"));
   }
 
   @Test
-  void anotherMethodIsA405ProblemNamingTheOneAccepted() {
+  void anotherMethodIsA405Problem() {
     given()
             .queryParam("orig", ORIG)
             .queryParam("dest", DEST)
@@ -890,12 +880,11 @@ class RaptorResourceTest {
             .then()
             .statusCode(405)
             .contentType(startsWith("application/problem+json"))
-            .body("title", is("Method Not Allowed"))
-            .body("detail", is("/ does not accept that method: every endpoint of this API accepts GET only."));
+            .body("title", is("Method Not Allowed"));
   }
 
   @Test
-  void anAcceptHeaderWithoutJsonIsA406ProblemSayingWhatIsServed() {
+  void anAcceptHeaderWithoutJsonIsA406Problem() {
     given()
             .accept("text/csv")
             .queryParam("orig", ORIG)
@@ -906,18 +895,19 @@ class RaptorResourceTest {
             .then()
             .statusCode(406)
             .contentType(startsWith("application/problem+json"))
-            .body("detail", is("Responses are application/json, which the request's Accept header does not allow."));
+            .body("title", is("Not Acceptable"));
   }
 
   @Test
-  void aMissingParameterKeepsItsViolationAlongsideTheDetail() {
+  void aMissingParameterIsAProblemListingItsViolations() {
     given()
             .queryParam("dest", DEST)
             .queryParam("endDate", DATE + "T09:30:00")
             .when().get("/")
             .then()
             .statusCode(400)
-            .body("detail", is("query parameter orig is required; query parameter startDate is required."))
+            .contentType(startsWith("application/problem+json"))
             .body("violations.field", containsInAnyOrder("orig", "startDate"));
   }
+
 }

@@ -67,23 +67,19 @@ That includes the 503 from `FaultToleranceExceptionMapper`: a saturated bulkhead
 query is the same shape as everything else, with `Retry-After` still set, and its `detail` says
 which of the two it was.
 
-Every problem has a `detail` that says why the request was rejected, in terms of the request:
+The errors the API raises itself are built with `HttpProblem.builder()`, with a `detail` that says why the
+request was rejected, in terms of the request:
 
 | Status | When | `detail`, for example |
 |---|---|---|
-| 400 | a required parameter is missing or blank | `query parameter orig is required.` (the problem also lists `violations`) |
-| 400 | a window parameter is not ISO 8601 | `startDate=nonsense is not an ISO 8601 date-time; expected an offset form such as ...` |
 | 400 | `endDate` is not after `startDate` | `endDate=... must be after startDate=...: the window holds no departures.` |
 | 400 | `orig` or `dest` is in `notVia` | `notVia=[BTN] includes the origin, orig=BTN: a journey cannot avoid the stop it starts at.` |
-| 404 | no endpoint at the path | `There is no endpoint at /journeys. The endpoints are GET /, GET /detail and GET /first-arrival.` |
-| 405 | a method other than GET | `/ does not accept that method: every endpoint of this API accepts GET only.` |
-| 406 | the `Accept` header excludes JSON | `Responses are application/json, which the request's Accept header does not allow.` |
-| 500 | an unexpected error | `An unexpected error stopped the request. It has been logged, ...`; the cause is not exposed |
+| 400 | a window parameter is not ISO 8601 | `startDate=nonsense is not an ISO 8601 date-time; expected an offset form such as ...` |
 | 503 | at capacity, or the time limit was exceeded | which of the two, and to retry after `Retry-After` |
 
-The errors raised by the API's own checks carry their detail where they are thrown;
-`ReadableProblemDetails` supplies it for the ones the framework raises, which it would otherwise
-leave empty or describe in its own terms.
+The errors the framework raises - a missing or blank parameter (with its `violations`), an unknown
+path, another method, an `Accept` header without JSON, an unexpected error - are problems in
+`quarkus-http-problem`'s own wording.
 
 ## OpenAPI
 

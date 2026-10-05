@@ -1,8 +1,10 @@
 package com.joshuaharwood.velociraptor.server.http;
 
+import io.quarkiverse.httpproblem.HttpProblem;
 import io.quarkus.logging.Log;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ParamConverter;
 import jakarta.ws.rs.ext.ParamConverterProvider;
 import jakarta.ws.rs.ext.Provider;
@@ -70,8 +72,16 @@ public class WindowDateTimeParamConverterProvider implements ParamConverterProvi
                   + "deprecated: send ISO 8601 with an offset.", parameter, value, resolved);
         return resolved;
       } catch (DateTimeParseException notALocalDateTime) {
-        throw new BadRequestException(parameter + "=" + value + " is not an ISO 8601 date-time; expected an offset "
-                                      + "form such as 2026-09-08T08:45:00+01:00");
+        String detail = parameter + "=" + value + " is not an ISO 8601 date-time; expected an offset form such as "
+                        + "2026-09-08T08:45:00+01:00";
+        // JAX-RS turns anything but a WebApplicationException thrown from a ParamConverter into a 404, so the problem
+        // built here travels as the response of a BadRequestException rather than being thrown itself.
+        throw new BadRequestException(detail, HttpProblem.builder()
+                                                          .withStatus(Response.Status.BAD_REQUEST)
+                                                          .withTitle("Bad Request")
+                                                          .withDetail(detail)
+                                                          .build()
+                                                          .toResponse());
       }
     }
 

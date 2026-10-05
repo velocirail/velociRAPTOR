@@ -64,13 +64,13 @@ public class RaptorResource {
                     + "says which. Retry after the interval in the `Retry-After` header.")
     public List<SimpleJourney> rangeQuery(
             @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("orig") String orig,
+            @NotBlank @QueryParam("orig") String orig,
             @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("dest") String dest,
+            @NotBlank @QueryParam("dest") String dest,
             @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
-            @NotNull(message = "is required") @QueryParam("startDate") OffsetDateTime startDate,
+            @NotNull @QueryParam("startDate") OffsetDateTime startDate,
             @Parameter(description = "End of the search window, in the same form as `startDate`. May fall on the following day, which includes GTFS after-midnight (&gt; 24:00) departures rather than dropping them.")
-            @NotNull(message = "is required") @QueryParam("endDate") OffsetDateTime endDate,
+            @NotNull @QueryParam("endDate") OffsetDateTime endDate,
             @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET / orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
@@ -99,13 +99,13 @@ public class RaptorResource {
                     + "says which. Retry after the interval in the `Retry-After` header.")
     public List<RailJourney> detailQuery(
             @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("orig") String orig,
+            @NotBlank @QueryParam("orig") String orig,
             @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("dest") String dest,
+            @NotBlank @QueryParam("dest") String dest,
             @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
-            @NotNull(message = "is required") @QueryParam("startDate") OffsetDateTime startDate,
+            @NotNull @QueryParam("startDate") OffsetDateTime startDate,
             @Parameter(description = "End of the search window, in the same form as `startDate`. May fall on the following day, which includes GTFS after-midnight (&gt; 24:00) departures rather than dropping them.")
-            @NotNull(message = "is required") @QueryParam("endDate") OffsetDateTime endDate,
+            @NotNull @QueryParam("endDate") OffsetDateTime endDate,
             @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /detail orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
@@ -133,11 +133,11 @@ public class RaptorResource {
                     + "says which. Retry after the interval in the `Retry-After` header.")
     public List<RailJourney> firstArrival(
             @Parameter(description = "Origin stop id (CRS code, e.g. `BTN`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("orig") String orig,
+            @NotBlank @QueryParam("orig") String orig,
             @Parameter(description = "Destination stop id (CRS code, e.g. `VIC`). An unknown stop yields an empty list, not an error.")
-            @NotBlank(message = "is required") @QueryParam("dest") String dest,
+            @NotBlank @QueryParam("dest") String dest,
             @Parameter(description = "Start of the search window: ISO 8601 with a UTC offset, e.g. `2026-06-03T08:30:00+01:00` or `2026-06-03T07:30:00Z`. Read on the Europe/London clock, which is the one GTFS times run on and which picks the service date. A zone-less value (`2026-06-03T08:30:00`) is still accepted and read as London wall-clock, but is deprecated and logged at WARN.")
-            @NotNull(message = "is required") @QueryParam("startDate") OffsetDateTime startDate,
+            @NotNull @QueryParam("startDate") OffsetDateTime startDate,
             @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /first-arrival orig=%s dest=%s startDate=%s notVia=%s", orig, dest, startDate, notVia);
@@ -174,19 +174,25 @@ public class RaptorResource {
      */
     static void validateWindow(OffsetDateTime startDate, OffsetDateTime endDate) {
         if (!endDate.isAfter(startDate)) {
-            throw HttpProblem.valueOf(Response.Status.BAD_REQUEST,
-                    "endDate=" + endDate + " must be after startDate=" + startDate + ": the window holds no departures.");
+            throw badRequest("endDate=" + endDate + " must be after startDate=" + startDate + ": the window holds no departures.");
         }
     }
 
     static void validateNotVia(List<String> notVia, String orig, String dest) {
         if (notVia.contains(orig)) {
-            throw HttpProblem.valueOf(Response.Status.BAD_REQUEST,
-                    "notVia=" + notVia + " includes the origin, orig=" + orig + ": a journey cannot avoid the stop it starts at.");
+            throw badRequest("notVia=" + notVia + " includes the origin, orig=" + orig + ": a journey cannot avoid the stop it starts at.");
         }
         if (notVia.contains(dest)) {
-            throw HttpProblem.valueOf(Response.Status.BAD_REQUEST,
-                    "notVia=" + notVia + " includes the destination, dest=" + dest + ": a journey cannot avoid the stop it ends at.");
+            throw badRequest("notVia=" + notVia + " includes the destination, dest=" + dest + ": a journey cannot avoid the stop it ends at.");
         }
+    }
+
+    /** A 400 problem; the library's mapper adds the request path as its {@code instance}. */
+    private static HttpProblem badRequest(String detail) {
+        return HttpProblem.builder()
+                          .withStatus(Response.Status.BAD_REQUEST)
+                          .withTitle("Bad Request")
+                          .withDetail(detail)
+                          .build();
     }
 }
