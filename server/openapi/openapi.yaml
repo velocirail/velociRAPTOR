@@ -507,15 +507,18 @@ paths:
                 items:
                   $ref: "#/components/schemas/SimpleJourney"
         "400":
-          description: "A window parameter is not an ISO 8601 date-time, or `orig`/`dest`\
-            \ also appears in `notVia`."
+          description: "A required parameter is missing or blank, a window parameter\
+            \ is not an ISO 8601 date-time, `endDate` is not after `startDate`, or\
+            \ `orig`/`dest` also appears in `notVia`. The problem's `detail` says\
+            \ which."
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/HttpProblem"
         "503":
-          description: "Server at capacity: the bulkhead is full or the query exceeded\
-            \ its timeout. Retry after the interval in the `Retry-After` header."
+          description: "The server is at capacity, or the search exceeded its time\
+            \ limit; the problem's `detail` says which. Retry after the interval in\
+            \ the `Retry-After` header."
           content:
             application/problem+json:
               schema:
@@ -581,15 +584,18 @@ paths:
                 items:
                   $ref: "#/components/schemas/RailJourney"
         "400":
-          description: "A window parameter is not an ISO 8601 date-time, or `orig`/`dest`\
-            \ also appears in `notVia`."
+          description: "A required parameter is missing or blank, a window parameter\
+            \ is not an ISO 8601 date-time, `endDate` is not after `startDate`, or\
+            \ `orig`/`dest` also appears in `notVia`. The problem's `detail` says\
+            \ which."
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/HttpProblem"
         "503":
-          description: "Server at capacity: the bulkhead is full or the query exceeded\
-            \ its timeout. Retry after the interval in the `Retry-After` header."
+          description: "The server is at capacity, or the search exceeded its time\
+            \ limit; the problem's `detail` says which. Retry after the interval in\
+            \ the `Retry-After` header."
           content:
             application/problem+json:
               schema:
@@ -647,15 +653,17 @@ paths:
                 items:
                   $ref: "#/components/schemas/RailJourney"
         "400":
-          description: "A window parameter is not an ISO 8601 date-time, or `orig`/`dest`\
-            \ also appears in `notVia`."
+          description: "A required parameter is missing or blank, `startDate` is not\
+            \ an ISO 8601 date-time, or `orig`/`dest` also appears in `notVia`. The\
+            \ problem's `detail` says which."
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/HttpProblem"
         "503":
-          description: "Server at capacity: the bulkhead is full or the query exceeded\
-            \ its timeout. Retry after the interval in the `Retry-After` header."
+          description: "The server is at capacity, or the search exceeded its time\
+            \ limit; the problem's `detail` says which. Retry after the interval in\
+            \ the `Retry-After` header."
           content:
             application/problem+json:
               schema:

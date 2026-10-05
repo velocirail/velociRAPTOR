@@ -32,7 +32,16 @@ class FaultToleranceExceptionMapperTest {
     assertThat((HttpProblem) mapper.toResponse(new BulkheadException("full")).getEntity())
         .returns(503, from(HttpProblem::getStatusCode))
         .returns("Service Unavailable", from(HttpProblem::getTitle))
-        .returns("Server at capacity, please try again later", from(HttpProblem::getDetail));
+        .returns(FaultToleranceExceptionMapper.detailFor(new BulkheadException("full")), from(HttpProblem::getDetail));
+  }
+
+  @Test
+  void aFullBulkheadAndATimeoutSayWhichTheyAre() {
+    // A timed-out search is not the server being busy (BUGS.md 9.5).
+    assertThat(FaultToleranceExceptionMapper.detailFor(new BulkheadException("full"))).contains("at capacity");
+    assertThat(FaultToleranceExceptionMapper.detailFor(new TimeoutException("too slow")))
+        .contains("did not finish within its time limit")
+        .doesNotContain("capacity");
   }
 
   @Test

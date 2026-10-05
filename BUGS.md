@@ -557,7 +557,7 @@ is the no-op one: `raptor.journeys.returned`, `raptor.servicedate.cache.miss`,
 Fix: `quarkus.otel.metrics.enabled=true` in `application.properties`.
 
 ### 9.5 `@Timeout(5s)` cannot stop a scan; the client then gets a 503 "at capacity" for a timeout — MEDIUM-LOW
-- [ ] Fixed
+- [ ] Partly fixed — `FaultToleranceExceptionMapper.detailFor` now tells a timeout from a full bulkhead, so a timed-out search is no longer reported as "at capacity". The scan still runs to completion and holds its bulkhead slot. Test: `FaultToleranceExceptionMapperTest.aFullBulkheadAndATimeoutSayWhichTheyAre`.
 
 `RaptorResource.java:28-30`, `FaultToleranceExceptionMapper.java:16-19`. SmallRye's synchronous
 `Timeout` only interrupts the thread; the RAPTOR loops never check interruption, so the request
@@ -591,7 +591,7 @@ and the not-via is then silently dropped because `Stop("sca")` is unindexed. Fix
 and reject codes absent from the DAO with 400.
 
 ### 9.9 `validateNotVia` 400 body is a bare string sent as `application/json` — LOW
-- [ ] Fixed
+- [x] Fixed — `validateNotVia` throws an `HttpProblem`, so the 400 is an `application/problem+json` body whose `detail` names the stop. Tests: `RaptorResourceTest.*returns400When*IsInNotVia`.
 
 `RaptorResource.java:26, 97`. The class-level `@Produces` supplies the content type for a plain
 string entity; the validator's own 400s on the same endpoints are JSON objects.
