@@ -22,7 +22,7 @@ All endpoints are `GET` and return JSON arrays of journeys.
   moved onto the Europe/London wall-clock before use: the service date is `startDate`'s London date,
   and the window is expressed in seconds from that date's midnight, so an `endDate` on the following
   day (> 86400s) correctly includes GTFS after-midnight departures past 24:00. `endDate` must be after
-  `startDate`, compared as instants; one at or before it is a 400.
+  `startDate`, compared as instants; one at or before it is a 400 whose plain-text body says so.
 
   A zone-less value (`2026-06-03T12:30:00`) is still accepted and read as Europe/London wall-clock,
   but is deprecated and logged at WARN. Anything else is a 400; the server log names the parameter.

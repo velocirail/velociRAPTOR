@@ -135,7 +135,9 @@ class RaptorResourceTest {
             .queryParam("endDate", DATE + end)
             .when().get(path)
             .then()
-            .statusCode(400);
+            .statusCode(400)
+            .contentType(startsWith("text/plain"))
+            .body(containsString("must be after startDate="));
   }
 
   @Test

@@ -119,10 +119,17 @@ public class RaptorResource {
      * A window must end after it starts. One that does not holds no departures, so without this it would come back
      * as {@code 200 []}, indistinguishable from a window in which nothing runs. Compared as instants, so the two
      * may be written with different offsets.
+     * <p>
+     * The reason goes in a plain-text body, so the caller is told what was wrong rather than handed an empty 400, and
+     * on the exception too, for an error mapper that builds its own body from the message.
      */
     static void validateWindow(OffsetDateTime startDate, OffsetDateTime endDate) {
         if (!endDate.isAfter(startDate)) {
-            throw new BadRequestException("endDate=" + endDate + " must be after startDate=" + startDate);
+            String reason = "endDate=" + endDate + " must be after startDate=" + startDate;
+            throw new BadRequestException(reason, Response.status(Response.Status.BAD_REQUEST)
+                                                          .type(MediaType.TEXT_PLAIN_TYPE)
+                                                          .entity(reason)
+                                                          .build());
         }
     }
 
