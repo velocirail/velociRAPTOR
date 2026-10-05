@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.onebusaway.gtfs.impl.calendar.CalendarServiceDataFactoryImpl;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Loads the artificial sample feed (see fixtures/gtfs-sample/README.md) through the OBA reader and scans it. */
 class RaptorAlgorithmTest {
 
-  private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample").toFile();
+  private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample-gb-transit").toFile();
 
   // A Wednesday: the full Mon-Sat timetable runs.
   private static final ServiceDate SERVICE_DATE = new ServiceDate(2026, 6, 3);
@@ -38,7 +39,7 @@ class RaptorAlgorithmTest {
 
   @BeforeAll
   static void loadGtfs() {
-    ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(GTFS_FILE);
+    ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(GTFS_FILE, FeedFormat.GB_TRANSIT);
     CalendarService calendarService = CalendarServiceDataFactoryImpl.createService(dao);
     RAPTOR = RaptorAlgorithmFactory.createFromDao(dao, calendarService, SERVICE_DATE);
   }

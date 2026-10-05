@@ -17,11 +17,12 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Integration tests against the artificial sample feed in {@code fixtures/gtfs-sample} (see its README for the
- * network). Every time below is invented there, so the assertions are exact.
+ * Integration tests against the artificial sample feed in gb-transit form, {@code fixtures/gtfs-sample-gb-transit}
+ * (see {@code fixtures/gtfs-sample/README.md} for the network). Every time below is invented there, so the assertions
+ * are exact. Stops are asked for and answered by CRS code although the feed's stop ids are NaPTAN ones.
  * <p>
- * Reference trip: 1020900 (UID WB0900) - the 09:00 Southern fast BTN -> HHE -> GTW -> ECR -> VIC, arriving 10:00,
- * Mon-Sat. 2026-06-03 is a Wednesday with the full timetable.
+ * Reference trip: WB0900_20260601_20260628 (UID WB0900) - the 09:00 Southern fast BTN -> HHE -> GTW -> ECR -> VIC,
+ * arriving 10:00, Mon-Sat. 2026-06-03 is a Wednesday with the full timetable.
  */
 @QuarkusTest
 @QuarkusTestResource(LocalStackS3Resource.class)
@@ -39,8 +40,8 @@ class RaptorResourceTest {
   // local wall-clock plus offset. June is BST, so +01:00.
   private static final String TRIP_DEPARTURE = DATE + "T09:00:00+01:00";
   private static final String TRIP_ARRIVAL = DATE + "T10:00:00+01:00";
-  // trainUid is the train UID from GTFS trip_headsign, distinct from the numeric trip_id.
-  private static final String TRIP_ID = "1020900";
+  // trainUid is the train UID leading the gb-transit trip_id, which also carries the schedule's dates.
+  private static final String TRIP_ID = "WB0900_20260601_20260628";
   private static final String TRAIN_UID = "WB0900";
 
   @Test
@@ -468,7 +469,7 @@ class RaptorResourceTest {
   }
 
   // --- After-midnight (GTFS >24h) ---
-  // Trip 1052415 (UID WE2415) is the Saturday night owl VIC -> ECR -> GTW -> HHE -> BTN. It departs VIC at
+  // Trip WE2415_20260601_20260628 (UID WE2415) is the Saturday night owl VIC -> ECR -> GTW -> HHE -> BTN. It departs VIC at
   // 24:15:00 - i.e. 00:15 the following morning, owned by the originating Saturday service date. 2026-06-06 is a
   // Saturday. A window from Saturday evening to Sunday morning must surface it, and it is the only departure in
   // the window (the last ordinary train leaves at 22:45).
@@ -508,7 +509,7 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", is(1))
             .body("[0].legs[0].departureTime", is(OWL_DEPARTURE))
-            .body("[0].legs[0].trainTrip.tripId", is("1052415"))
+            .body("[0].legs[0].trainTrip.tripId", is("WE2415_20260601_20260628"))
             .body("[0].legs[0].trainTrip.stopTimes[1].stop", is("ECR"))
             .body("[0].legs[0].trainTrip.stopTimes[1].pickUpType", is("NONE"))
             .body("[0].legs[0].trainTrip.stopTimes[1].pickUp", is(false))
@@ -590,10 +591,14 @@ class RaptorResourceTest {
   }
 
   @Test
-  void rangeQuery_ferryLinkIsUsableOnlyInsideItsWindowForTheDay() {
+  void rangeQuery_ferryLinkIsUsableInsideItsPublishedWindow() {
     // SHN 06:50 -> RYP 07:15, ferry to PMH, coastway 08:05 -> BTN 09:15. The ferry check is made on the arrival at
     // the far end (07:15 + 2 min + 22 min + 3 min = 07:42): inside the Mon-Sat 06:00-23:00 window on Saturday
-    // 2026-06-06, before the Sunday 08:00 start on 2026-06-07.
+    // 2026-06-06.
+    //
+    // On Sunday 2026-06-07 the DTD's ferry starts at 08:00, but gb-transit publishes one row per pair of stations,
+    // the envelope of its windows (06:00-23:00 every day), so the same journey is offered then too (BUGS.md 10.1).
+    // FerryLinkWindowTest pins the per-day windows against the dtd2gtfs sample, which keeps them apart.
     given()
             .queryParam("orig", "SHN")
             .queryParam("dest", "BTN")
@@ -619,7 +624,10 @@ class RaptorResourceTest {
             .when().get("/")
             .then()
             .statusCode(200)
-            .body("size()", is(0));
+            .body("size()", is(1))
+            .body("[0].legs[1].origin", is("RYP"))
+            .body("[0].legs[1].destination", is("PMH"))
+            .body("[0].legs[-1].arrivalTime", is("2026-06-07T09:15:00+01:00"));
   }
 
   @Inject

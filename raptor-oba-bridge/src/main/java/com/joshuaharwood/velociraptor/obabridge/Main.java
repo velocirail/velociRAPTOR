@@ -5,6 +5,7 @@ import module java.base;
 import org.onebusaway.gtfs.impl.calendar.CalendarServiceDataFactoryImpl;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
@@ -12,7 +13,7 @@ import com.joshuaharwood.velociraptor.raptor.model.Stop;
 public class Main {
 
   private static final ExtendedGtfsRelationalDaoImpl DAO = GtfsDeserialiser.createNewDao(new File(
-    "fixtures/gtfs-sample"));
+    "fixtures/gtfs-sample-gb-transit"), FeedFormat.GB_TRANSIT);
 
   private static final CalendarService CALENDAR_SERVICE = CalendarServiceDataFactoryImpl.createService(
     DAO);

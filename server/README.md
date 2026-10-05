@@ -92,14 +92,20 @@ The live document is served at `/q/openapi`, with Swagger UI at `/q/swagger-ui` 
 
 ## Running locally
 
-The prod profile loads GTFS from a local path (`velociraptor.gtfs.source.path`, default
-`../fixtures/gtfs-sample`, relative to this module), so no S3 or Docker is needed:
+The feed has no default: `velociraptor.gtfs.source.path` (a local zip or directory, or an `s3://`
+URI) and `velociraptor.gtfs.source.format` (`gb-transit`, or the deprecated `dtd2gtfs`) are both
+required, and the server does not start without them. A local path needs no S3 or Docker:
 
 ```
 ./mvnw -pl server -am package -DskipTests
-cd server && java -Dvelociraptor.raptor.servicedate.precompute=false \
+cd server && java -Dvelociraptor.gtfs.source.path=../fixtures/gtfs-sample-gb-transit \
+  -Dvelociraptor.gtfs.source.format=gb-transit \
+  -Dvelociraptor.raptor.servicedate.precompute=false \
   -jar target/quarkus-app/quarkus-run.jar
 ```
+
+A gb-transit release works the same way, e.g.
+`-Dvelociraptor.gtfs.source.path=/data/gtfs-national-rail-only.zip`.
 
 `velociraptor.raptor.servicedate.precompute=true` precomputes a `RaptorAlgorithm` per service date
 at startup, and the readiness probe waits for it. `false` starts immediately and builds each date on
@@ -108,14 +114,17 @@ first use.
 ### Dev mode
 
 ```
-./mvnw -pl server -am quarkus:dev
+./mvnw -pl server -am quarkus:dev \
+  -Dvelociraptor.gtfs.source.path=../fixtures/gtfs-sample-gb-transit -Dvelociraptor.gtfs.source.format=gb-transit
 ```
 
 The Quarkus Dev UI is available in dev mode at <http://localhost:8080/q/dev/>.
 
 ### Tests
 
-Only the `@QuarkusTest` suite needs Docker, for the LocalStack S3 fixture.
+Only the `@QuarkusTest` suite needs Docker, for the LocalStack S3 fixture. It serves
+`fixtures/gtfs-sample-gb-transit`; `-Dvelociraptor.test.gtfs` and `-Dvelociraptor.test.gtfs.format`
+point it at another feed.
 
 ## Packaging
 

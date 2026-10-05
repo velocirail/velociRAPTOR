@@ -3,6 +3,8 @@ package com.joshuaharwood.velociraptor.server;
 public final class VelociraptorConfig {
   public static final String ROUTING_ALGORITHM_PRECOMPUTE = "velociraptor.raptor.servicedate.precompute";
   public static final String GTFS_SOURCE_PATH = "velociraptor.gtfs.source.path";
+  // Required, no default: gb-transit, or the deprecated dtd2gtfs. See FeedFormat.
+  public static final String GTFS_SOURCE_FORMAT = "velociraptor.gtfs.source.format";
 
   // Where a journey may use a fixed link (walk, Tube, ferry...). All three default to false, as the production
   // server behaved. Env vars: VELOCIRAPTOR_RAPTOR_FIXEDLINKS_FORBIDLEADING etc.

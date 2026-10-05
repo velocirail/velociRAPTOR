@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version
+velociRAPTOR sample feed,https://github.com/joshuaharwood/velociRAPTOR,en,20260601,20260628,sample-1

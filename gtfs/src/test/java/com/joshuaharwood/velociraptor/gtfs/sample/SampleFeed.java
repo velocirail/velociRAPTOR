@@ -25,10 +25,17 @@ import static java.time.DayOfWeek.TUESDAY;
 import static java.time.DayOfWeek.WEDNESDAY;
 
 /**
- * The artificial golden GTFS feed: an invented timetable over a real corner of the network, written in the shape
- * the bridge reads today (dtd2gtfs style - {@code stop_id} is the CRS code, the train UID rides in
- * {@code trip_headsign}, fixed links are one {@code links.txt} row per window, interchange is a self-transfer per
- * station).
+ * The artificial golden GTFS feed: an invented timetable over a real corner of the network, written in each
+ * {@link Shape} the reader accepts, so the same network and the same journeys can be checked against every one:
+ * <ul>
+ *   <li>{@link Shape#GB_TRANSIT} - as gb-transit publishes {@code gtfs-national-rail-only.zip}: NaPTAN ids, calls at
+ *       boarding points under a station, the CRS in {@code stop_code}, the UID leading the {@code trip_id}, and the
+ *       fixed links in {@code transfers.txt} as one envelope row per pair of stations;
+ *   <li>{@link Shape#GB_TRANSIT_RAIL_AND_TFL} - as gb-transit publishes {@code gtfs-rail-and-tfl.zip}: the same without
+ *       the Tube links, with a timetabled Victoria line and a walk between two stations in their place;
+ *   <li>{@link Shape#DTD2GTFS} - the deprecated dtd2gtfs shape: {@code stop_id} is the CRS code, the train UID rides
+ *       in {@code trip_headsign}, fixed links are one {@code links.txt} row per window.
+ * </ul>
  * <p>
  * Stations, CRS codes, operators and geography are real so that queries read like the ones the service answers;
  * every time, calendar and link is made up here, so nothing is derived from a licensed extract. The committed copy
@@ -77,13 +84,37 @@ import static java.time.DayOfWeek.WEDNESDAY;
  */
 public final class SampleFeed {
 
+  /** The shapes the feed is written in, and the fixture directory each is committed to. */
+  public enum Shape {
+    GB_TRANSIT("gtfs-sample-gb-transit"),
+    GB_TRANSIT_RAIL_AND_TFL("gtfs-sample-gb-transit-rail-and-tfl"),
+    /** @deprecated the dtd2gtfs feed format is deprecated; kept while the reader still accepts it */
+    @Deprecated
+    DTD2GTFS("gtfs-sample");
+
+    private final String directory;
+
+    Shape(String directory) {
+      this.directory = directory;
+    }
+
+    /** The committed fixture, relative to the repository root. */
+    public String directory() {
+      return directory;
+    }
+
+    boolean gbTransit() {
+      return this != DTD2GTFS;
+    }
+  }
+
   public static final LocalDate FEED_START = LocalDate.of(2026, 6, 1);
   public static final LocalDate FEED_END = LocalDate.of(2026, 6, 28);
   public static final LocalDate BANK_HOLIDAY = LocalDate.of(2026, 6, 15);
   public static final LocalDate OVERLAY_START = LocalDate.of(2026, 6, 22);
   public static final LocalDate OVERLAY_END = LocalDate.of(2026, 6, 26);
 
-  private static final Set<DayOfWeek> EVERY_DAY = EnumSet.allOf(DayOfWeek.class);
+  static final Set<DayOfWeek> EVERY_DAY = EnumSet.allOf(DayOfWeek.class);
   private static final Set<DayOfWeek> MON_TO_SAT = EnumSet.range(MONDAY, SATURDAY);
   private static final Set<DayOfWeek> MON_TO_FRI = EnumSet.range(MONDAY, FRIDAY);
   private static final Set<DayOfWeek> SUN = EnumSet.of(SUNDAY);
@@ -96,16 +127,26 @@ public final class SampleFeed {
   static final int OVERLAY = 5;
 
   // pickup / drop-off types
-  private static final int REGULAR = 0;
+  static final int REGULAR = 0;
   private static final int NONE = 1;
   private static final int REQUEST = 3;
 
-  private static final String TZ = "Europe/London";
+  static final String TZ = "Europe/London";
 
   /** {@code interchange < 0} means the station gets no transfers.txt row, so the reader's default (0) applies. */
   record Station(String crs, String tiploc, String name, int cate, double lat, double lon, int interchange) {
     boolean hasInterchangeRow() {
       return interchange >= 0;
+    }
+
+    /** The NaPTAN station id gb-transit gives it. */
+    String atco() {
+      return "910G" + tiploc;
+    }
+
+    /** The boarding point a call naming {@code platform} (or none) is made at. */
+    String boardingPoint(String platform) {
+      return "9100" + tiploc + platform;
     }
   }
 
@@ -139,6 +180,16 @@ public final class SampleFeed {
   }
 
   record Link(String from, String to, String mode, int duration, int start, int end, Set<DayOfWeek> days) {}
+
+  /**
+   * A TfL station for the rail and TfL shape. {@code within} is the CRS of the rail station it is folded into, or
+   * null for a station of its own, which gb-transit gives a three character code starting with a digit.
+   */
+  record TflStation(String atco, String name, String code, String within, double lat, double lon) {
+    String platform() {
+      return "9400" + atco.substring(4) + "1";
+    }
+  }
 
   static final Operator SN = new Operator(1, 'W', "SN", "Southern", "https://www.southernrailway.com/", "0345 127 2920");
   static final Operator TL = new Operator(2, 'L', "TL", "Thameslink", "https://www.thameslinkrailway.com/", "0345 026 4700");
@@ -232,8 +283,28 @@ public final class SampleFeed {
 
   static final List<Link> LINKS = links();
 
-  private static final int FIRST_HOUR = 6;
-  private static final int LAST_HOUR = 22;
+  // --- the rail and TfL shape ---------------------------------------------------------------------------------
+
+  static final String TFL_AGENCY = "LUL";
+  static final String TFL_ROUTE = "tfl_VIC";
+  static final String TFL_SERVICE = "tfl_1";
+  static final int TFL_INTERCHANGE = 120;
+
+  /** The Victoria line from Victoria to King's Cross St Pancras, in calling order northbound. */
+  static final List<TflStation> VICTORIA_LINE = List.of(
+    new TflStation("940GZZLUVIC", "Victoria Underground Station", "", "VIC", 51.4966, -0.1448),
+    new TflStation("940GZZLUGPK", "Green Park Underground Station", "100", null, 51.5067, -0.1428),
+    new TflStation("940GZZLUOXC", "Oxford Circus Underground Station", "101", null, 51.5152, -0.1415),
+    new TflStation("940GZZLUWRR", "Warren Street Underground Station", "102", null, 51.5247, -0.1384),
+    new TflStation("940GZZLUEUS", "Euston Underground Station", "", "EUS", 51.5282, -0.1337),
+    new TflStation("940GZZLUKSX", "King's Cross St. Pancras Underground Station", "", "STP", 51.5308, -0.1238)
+  );
+
+  /** A walk gb-transit adds between a TfL station of its own and a rail station, with no window: always there. */
+  static final Link WARREN_STREET_WALK = new Link("940GZZLUWRR", "EUS", "WALK", 300, 0, 0, EVERY_DAY);
+
+  static final int FIRST_HOUR = 6;
+  static final int LAST_HOUR = 22;
 
   private SampleFeed() {}
 
@@ -465,8 +536,19 @@ public final class SampleFeed {
       new Call("HGS", dep + m(55), dep + m(55), NONE, REGULAR, "4"));
   }
 
-  /** File name to content, in the order the files are conventionally listed. */
-  public static Map<String, String> files() {
+  /** File name to content for {@code shape}, in the order the files are conventionally listed. */
+  public static Map<String, String> files(Shape shape) {
+    return shape.gbTransit() ? GbTransitFiles.files(shape) : dtd2gtfsFiles();
+  }
+
+  public static void writeTo(Path directory, Shape shape) throws IOException {
+    Files.createDirectories(directory);
+    for (var e : files(shape).entrySet()) {
+      Files.writeString(directory.resolve(e.getKey()), e.getValue(), StandardCharsets.UTF_8);
+    }
+  }
+
+  private static Map<String, String> dtd2gtfsFiles() {
     var files = new LinkedHashMap<String, String>();
     files.put("agency.txt", agency());
     files.put("calendar.txt", calendar());
@@ -481,13 +563,6 @@ public final class SampleFeed {
     return files;
   }
 
-  public static void writeTo(Path directory) throws IOException {
-    Files.createDirectories(directory);
-    for (var e : files().entrySet()) {
-      Files.writeString(directory.resolve(e.getKey()), e.getValue(), StandardCharsets.UTF_8);
-    }
-  }
-
   private static String agency() {
     var sb = new StringBuilder("agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url\n");
     for (var op : OPERATORS) {
@@ -496,7 +571,7 @@ public final class SampleFeed {
     return sb.toString();
   }
 
-  private static String calendar() {
+  static String calendar() {
     var sb = new StringBuilder("service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n");
     for (var c : CALENDARS) {
       row(sb, c.serviceId(), flag(c.days(), MONDAY), flag(c.days(), TUESDAY), flag(c.days(), WEDNESDAY),
@@ -506,7 +581,7 @@ public final class SampleFeed {
     return sb.toString();
   }
 
-  private static String calendarDates() {
+  static String calendarDates() {
     var sb = new StringBuilder("service_id,date,exception_type\n");
     for (var e : CALENDAR_EXCEPTIONS) {
       row(sb, e.serviceId(), compact(e.date()), e.type());
@@ -514,7 +589,7 @@ public final class SampleFeed {
     return sb.toString();
   }
 
-  private static String feedInfo() {
+  static String feedInfo() {
     var sb = new StringBuilder("feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version\n");
     row(sb, "velociRAPTOR sample feed", "https://github.com/joshuaharwood/velociRAPTOR", "en", compact(FEED_START), compact(FEED_END), "sample-1");
     return sb.toString();
@@ -580,7 +655,7 @@ public final class SampleFeed {
 
   // --- formatting -------------------------------------------------------------------------------------------
 
-  private static void row(StringBuilder sb, Object... fields) {
+  static void row(StringBuilder sb, Object... fields) {
     sb.append(Arrays.stream(fields).map(SampleFeed::csv).collect(Collectors.joining(","))).append('\n');
   }
 
@@ -589,11 +664,11 @@ public final class SampleFeed {
     return s.contains(",") || s.contains("\"") ? '"' + s.replace("\"", "\"\"") + '"' : s;
   }
 
-  private static String flag(Set<DayOfWeek> days, DayOfWeek day) {
+  static String flag(Set<DayOfWeek> days, DayOfWeek day) {
     return days.contains(day) ? "1" : "0";
   }
 
-  private static String compact(LocalDate date) {
+  static String compact(LocalDate date) {
     return String.format("%04d%02d%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
   }
 
@@ -602,7 +677,7 @@ public final class SampleFeed {
     return String.format("%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60);
   }
 
-  private static String hhmm(int seconds) {
+  static String hhmm(int seconds) {
     return String.format("%02d%02d", seconds / 3600, (seconds / 60) % 60);
   }
 
@@ -610,7 +685,7 @@ public final class SampleFeed {
     return hours * 3600 + minutes * 60;
   }
 
-  private static int m(int minutes) {
+  static int m(int minutes) {
     return minutes * 60;
   }
 }

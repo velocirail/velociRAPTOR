@@ -602,6 +602,32 @@ string entity; the validator's own 400s on the same endpoints are JSON objects.
 `S3GtfsLoader.java:29` says the loader is active under the `prod` profile; selection is actually by
 `s3://` prefix in `GtfsDaoProducer.java:42` and there is no `%prod` scoping anywhere.
 
+## 10. gb-transit import (`gtfs`)
+
+Known limits of reading a gb-transit feed (`velociraptor.gtfs.source.format=gb-transit`), recorded when the
+import was added. Each is a property of what gb-transit publishes rather than a defect in the reader.
+
+### 10.1 A fixed link is offered for the envelope of its windows — LOW (by upstream design)
+- [ ] Open — pinned by `GbTransitParityTest.onASundayALinkIsOfferedForItsEnvelope` and
+  `RaptorResourceTest.rangeQuery_ferryLinkIsUsableInsideItsPublishedWindow`.
+
+`gtfs/src/main/java/com/joshuaharwood/velociraptor/gtfs/GbTransitFixedLinks.java`. GTFS allows one
+`transfers.txt` row per pair of stops, so gb-transit publishes each fixed link as the envelope of the DTD's
+records for that pair: the shortest duration, the earliest start to the latest end, the union of the days and
+every mode. A pair whose records differ by day or hour is offered more widely than the DTD says. In the sample
+feed the Portsmouth Harbour - Ryde ferry is Mon-Sat 06:00-23:00 and Sun 08:00-20:00; read from gb-transit it is
+06:00-23:00 every day, so a Sunday journey catching the 07:42 boat is returned although the first Sunday
+sailing is 08:00. gb-transit can still write the unsummarised `links.txt` behind `--links`, but upstream has
+marked that for removal and the published feeds do not carry it, so it is not read.
+
+### 10.2 Splits and joins are not routed on — LOW
+- [ ] Open.
+
+gb-transit keeps both portions of a dividing or joining train as trips of their own and states the coupling as a
+`transfer_type` 4 row in `transfers.txt`. The reader skips those rows. A through journey still routes, because the
+base trip is not cut at the coupling, but staying aboard onto the portion is planned as a change of trains with
+the station's interchange time.
+
 ## Investigated and not a bug: Saunderton → Marylebone "07:45 outside the window"
 
 Report: a search for 09:00 (`…/SDR/MYB/2026-09-08T07:45:00Z/2026-09-08T08:30:00Z`) returned the

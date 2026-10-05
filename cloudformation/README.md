@@ -27,7 +27,8 @@ aws cloudformation create-stack \
     ParameterKey=PrivateSubnetIds,ParameterValue="subnet-xxxxx,subnet-yyyyy" \
     ParameterKey=AlbListenerArn,ParameterValue=arn:aws:elasticloadbalancing:eu-west-2:123456789012:listener/app/my-alb/xxxxx/yyyyy \
     ParameterKey=ContainerImage,ParameterValue=123456789012.dkr.ecr.eu-west-2.amazonaws.com/velociraptor:latest \
-    ParameterKey=GtfsSourceUri,ParameterValue=s3://my-bucket/gtfs-2026-06-01.zip \
+    ParameterKey=GtfsSourceUri,ParameterValue=s3://my-bucket/gtfs-national-rail-only-2026-06-01.zip \
+    ParameterKey=GtfsSourceFormat,ParameterValue=gb-transit \
     ParameterKey=ContainerMemory,ParameterValue=8192 \
     ParameterKey=ContainerCpu,ParameterValue=2048 \
     ParameterKey=DesiredCount,ParameterValue=2 \
@@ -44,7 +45,8 @@ aws cloudformation create-stack \
 | `AlbListenerArn` | ALB HTTPS listener ARN | `arn:aws:elasticloadbalancing:...` | Yes |
 | `AlbTestListenerArn` | Optional test listener for blue/green validation | `arn:aws:elasticloadbalancing:...` | No |
 | `ContainerImage` | ECR image URI | `123456789012.dkr.ecr.eu-west-2.amazonaws.com/velociraptor:latest` | Yes |
-| `GtfsSourceUri` | S3 URI of the GTFS feed | `s3://bucket/gtfs-2026-06-01.zip` | Yes |
+| `GtfsSourceUri` | S3 URI of the GTFS feed | `s3://bucket/gtfs-national-rail-only-2026-06-01.zip` | Yes |
+| `GtfsSourceFormat` | The feed's format: `gb-transit`, or the deprecated `dtd2gtfs` | `gb-transit` | Yes |
 | `ContainerMemory` | Task memory (MB) | `8192` | Yes |
 | `ContainerCpu` | Task CPU units | `2048` | Yes |
 | `DesiredCount` | Number of tasks | `2` | Yes |
@@ -73,7 +75,8 @@ service date at startup, so a feed covering more dates needs more of both.
      --use-previous-template \
      --capabilities CAPABILITY_NAMED_IAM \
      --parameters \
-       ParameterKey=GtfsSourceUri,ParameterValue=s3://my-bucket/gtfs-2026-06-08.zip \
+       ParameterKey=GtfsSourceUri,ParameterValue=s3://my-bucket/gtfs-national-rail-only-2026-06-08.zip \
+       ParameterKey=GtfsSourceFormat,UsePreviousValue=true \
        ParameterKey=Environment,UsePreviousValue=true \
        ParameterKey=VpcId,UsePreviousValue=true \
        ParameterKey=PrivateSubnetIds,UsePreviousValue=true \
@@ -84,6 +87,9 @@ service date at startup, so a feed covering more dates needs more of both.
        ParameterKey=DesiredCount,UsePreviousValue=true \
        ParameterKey=HealthCheckGracePeriod,UsePreviousValue=true
    ```
+
+   A stack created before `GtfsSourceFormat` existed has no previous value for it, so the first update after
+   upgrading passes it explicitly (`ParameterKey=GtfsSourceFormat,ParameterValue=gb-transit`).
 
 2. Trigger the CodeDeploy release:
 

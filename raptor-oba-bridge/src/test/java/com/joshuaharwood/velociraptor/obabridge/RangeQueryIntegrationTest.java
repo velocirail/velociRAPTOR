@@ -1,5 +1,6 @@
 package com.joshuaharwood.velociraptor.obabridge;
 
+import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RangeQueryIntegrationTest {
 
-    private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample").toFile();
+    private static final File GTFS_FILE = Paths.get("..", "fixtures", "gtfs-sample-gb-transit").toFile();
     private static final ServiceDate SERVICE_DATE = new ServiceDate(2026, 6, 3);
     private static final LocalDate QUERY_DATE = LocalDate.of(2026, 6, 3);
 
@@ -38,7 +39,7 @@ class RangeQueryIntegrationTest {
 
     @BeforeAll
     static void loadGtfs() {
-        ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(GTFS_FILE);
+        ExtendedGtfsRelationalDaoImpl dao = GtfsDeserialiser.createNewDao(GTFS_FILE, FeedFormat.GB_TRANSIT);
         RAPTOR = RaptorAlgorithmFactory.createFromDao(
                 dao, CalendarServiceDataFactoryImpl.createService(dao), SERVICE_DATE);
     }

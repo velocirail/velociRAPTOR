@@ -57,7 +57,7 @@ software, but derivative works must also be released under the GPL-3.0.
 | Module | What it does |
 |---|---|
 | `raptor` | The algorithm itself: the round-based scan, depart-after and range queries, journey construction. No GTFS knowledge. |
-| `gtfs` | GTFS reading on top of the OneBusAway GTFS libraries, extended with this project's `links.txt` fixed-link format. |
+| `gtfs` | GTFS reading on top of the OneBusAway GTFS libraries: gb-transit feeds, and the deprecated dtd2gtfs format with its `links.txt` fixed links. |
 | `raptor-oba-bridge` | Builds the algorithm's timetable structures from a loaded GTFS feed, per service date. |
 | `rail` | Rail-oriented journey rendering: full stop lists, train UIDs, fixed-link leg times. |
 | `server` | Quarkus REST API over the engine. See [`server/README.md`](server/README.md). |
@@ -75,11 +75,14 @@ Maven installation is needed:
 
 ## Run
 
-The server loads the artificial sample feed by default, so it starts with no external dependencies:
+The server has no default feed: it is told which to load and what format it is in. To run it on the
+artificial sample feed, which needs no external dependencies:
 
 ```
 ./mvnw -pl server -am package -DskipTests
-cd server && java -Dvelociraptor.raptor.servicedate.precompute=false \
+cd server && java -Dvelociraptor.gtfs.source.path=../fixtures/gtfs-sample-gb-transit \
+  -Dvelociraptor.gtfs.source.format=gb-transit \
+  -Dvelociraptor.raptor.servicedate.precompute=false \
   -jar target/quarkus-app/quarkus-run.jar
 ```
 
@@ -114,16 +117,44 @@ once into `RaptorAlgorithmConfig` and logged at startup.
 
 | Property | Default | Meaning |
 |---|---|---|
-| `velociraptor.gtfs.source.path` | `../fixtures/gtfs-sample` | GTFS to load: a local zip or directory, or an `s3://bucket/key` URI |
+| `velociraptor.gtfs.source.path` | none, required | GTFS to load: a local zip or directory, or an `s3://bucket/key` URI |
+| `velociraptor.gtfs.source.format` | none, required | The feed's format: `gb-transit`, or the deprecated `dtd2gtfs`. See [GTFS feeds](#gtfs-feeds) |
 | `velociraptor.raptor.servicedate.precompute` | `true` | Build the algorithm for every service date at startup; readiness waits for it |
 | `velociraptor.raptor.fixedlinks.forbidleading` | `false` | A journey may not begin with a fixed link |
 | `velociraptor.raptor.fixedlinks.forbidtrailing` | `false` | A journey may not end with a fixed link |
 | `velociraptor.raptor.fixedlinks.forbidcontiguous` | `false` | A journey may not take two fixed links in a row |
 
+## GTFS feeds
+
+velociRAPTOR reads the GB rail feeds [planarnetwork/gb-transit](https://github.com/planarnetwork/gb-transit)
+publishes every night, with `velociraptor.gtfs.source.format=gb-transit`. Any of its three will load:
+
+| Feed | Crossing London |
+|---|---|
+| [`gtfs-national-rail-only.zip`](https://github.com/planarnetwork/gb-transit/releases/latest/download/gtfs-national-rail-only.zip) | by fixed links: the DTD's Tube, walk and bus connections, each a set number of minutes |
+| [`gtfs-rail-and-tfl.zip`](https://github.com/planarnetwork/gb-transit/releases/latest/download/gtfs-rail-and-tfl.zip) | by TfL's own timetables for the Tube, DLR, trams, river boats and cable car, with walks between stations |
+| [`gtfs.zip`](https://github.com/planarnetwork/gb-transit/releases/latest/download/gtfs.zip) | as the first, plus the metro, ferry and bus services the CIF itself carries |
+
+A gb-transit feed identifies a stop by its NaPTAN code and calls at a platform beneath a station. The
+reader routes every platform as its station, under the station's `stop_code`, so the API still takes
+and returns CRS codes (`BTN`). A TfL station that is not inside a rail station routes under the three
+character code gb-transit gives it, which starts with a digit. The train UID is read from the front of
+the `trip_id`; a TfL trip has none. Fixed links are the `transfers.txt` rows between two stations,
+and splits and joins (`transfer_type` 4) are not routed on. [`BUGS.md`](BUGS.md) §10 records what
+the format cannot express.
+
+**`dtd2gtfs` is deprecated** and will be removed in a future release. It is the format dtd2mysql
+wrote before gb-transit: `stop_id` is the CRS code, the train UID is in `trip_headsign`, and fixed
+links are this project's `links.txt`. It still loads, with a warning at startup.
+
+Reading a feed as the wrong format stops the server at startup rather than routing over the wrong
+stops.
+
 ## Fixed links
 
-A fixed link is any `links.txt` connection that is not a timetabled train: a walk, a Tube ride, a
-ferry. A link carries a mode, a transit time, a time window and a day pattern.
+A fixed link is a connection between stations that is not a timetabled train: a walk, a Tube ride, a
+ferry. A link carries a mode, a transit time, a time window and a day pattern. gb-transit publishes
+one per pair of stations; a link it leaves without a window is there all day, every day.
 
 The three rules above are enforced inside the scan (`FixedLinkRules`), not by filtering results, so
 when a rule removes a link the train journey it would have out-competed is returned instead. A link
@@ -137,18 +168,27 @@ no rules.
 
 ## Sample feed
 
-The repository carries no real timetable. `fixtures/gtfs-sample` is an artificial GTFS feed over a
+The repository carries no real timetable. The sample feed is an artificial GTFS feed over a
 real corner of the network (Brighton Main Line, Thameslink, both Coastways, the Marshlink, the
 Portsmouth to Ryde ferry and a WCML stub) with an invented four-week timetable in June 2026.
 Stations, CRS codes, operators and geography are real so that queries read like the ones the
 service answers; every time, calendar and fixed link is invented, so nothing is derived from a
 licensed extract.
 
-It is the default `velociraptor.gtfs.source.path`, the fixture for the bridge and server tests, and
-the default dataset for the benchmarks and load tests. It is generated from `SampleFeed` in the
-`gtfs` module's tests and pinned by `SampleFeedGoldenTest`;
-[`fixtures/gtfs-sample/README.md`](fixtures/gtfs-sample/README.md) describes the network and the
-journeys it is built to exercise.
+It is committed in three shapes, all generated from `SampleFeed` in the `gtfs` module's tests and
+pinned by `SampleFeedGoldenTest`:
+
+| Directory | Shape |
+|---|---|
+| `fixtures/gtfs-sample-gb-transit` | as gb-transit's `gtfs-national-rail-only.zip`. The fixture for the server tests, the benchmarks and the load tests |
+| `fixtures/gtfs-sample-gb-transit-rail-and-tfl` | as gb-transit's `gtfs-rail-and-tfl.zip`: no Tube links, a timetabled Victoria line instead |
+| `fixtures/gtfs-sample` | the deprecated dtd2gtfs format, kept while it is still read |
+
+`GbTransitParityTest` plans every pair of stations on four different days from the gb-transit
+and dtd2gtfs copies and requires the same journeys from both.
+
+[`fixtures/gtfs-sample/README.md`](fixtures/gtfs-sample/README.md) describes the network, the
+journeys it is built to exercise and how the shapes differ.
 
 Real extracts for local runs go in `data/`, which is not tracked.
 
