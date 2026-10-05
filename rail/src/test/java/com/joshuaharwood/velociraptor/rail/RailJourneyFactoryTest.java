@@ -34,9 +34,9 @@ class RailJourneyFactoryTest {
         java.util.List.of(
             new StopTime(A, departA, departA, true, false),
             new StopTime(B, arriveB, arriveB, false, true)),
-        "svc", null, null, null, TransitMode.RAIL,
+        List.of(new TrainRun("t", 0, null, null)), null, TransitMode.RAIL,
         new Operator("XX", "XX", null, null, null),
-        new Route("XX", null, null, null, null, null), List.of());
+        new Route("XX", null, null, null, null, null), List.of(), List.of(), List.of(), List.of());
     return Map.of(B, Map.of(1, new ResultConnection(trip, 0, 1)));
   }
 
@@ -68,9 +68,9 @@ class RailJourneyFactoryTest {
     return new RailTrip("trip-" + from.id() + to.id(),
         List.of(new StopTime(from, departFrom, departFrom, true, false),
                 new StopTime(to, arriveTo, arriveTo, false, true)),
-        "svc", null, null, null, TransitMode.RAIL,
+        List.of(new TrainRun("t", 0, null, null)), null, TransitMode.RAIL,
         new Operator("XX", "XX", null, null, null),
-        new Route("XX", null, null, null, null, null), List.of());
+        new Route("XX", null, null, null, null, null), List.of(), List.of(), List.of(), List.of());
   }
 
   private LocalDateTime at(int seconds) {

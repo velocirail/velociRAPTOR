@@ -4,6 +4,7 @@ import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
+import com.joshuaharwood.velociraptor.raptor.model.DefaultTrip;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
 import com.joshuaharwood.velociraptor.raptor.query.RangeQuery;
@@ -31,9 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * journeys: the same stations, times, links and interchanges, differing only in trip ids. Checked across every pair
  * of stations.
  * <p>
- * The one difference is by design and pinned last: gb-transit publishes one row per pair of stations for a fixed
+ * The two differences are by design and pinned last. gb-transit publishes one row per pair of stations for a fixed
  * link, the envelope of its windows, so on a Sunday a link is offered for the longer Monday-Saturday hours
- * (BUGS.md 10.1).
+ * (BUGS.md 10.1). And gb-transit links the trains a passenger stays aboard across, which dtd2gtfs does not, so the
+ * comparison plans gb-transit's as changes of train, as dtd2gtfs's are.
  */
 @SuppressWarnings("removal")
 class GbTransitParityTest {
@@ -55,7 +57,7 @@ class GbTransitParityTest {
   void everyPairPlansTheSameJourneys(String day) {
     var date = LocalDate.parse(day);
     var legacy = algorithm(dtd2gtfs, date);
-    var current = algorithm(gbTransit, date);
+    var current = withoutLinks(gbTransit, date);
     int start = LocalTime.of(7, 0).toSecondOfDay();
     int end = LocalTime.of(23, 59).toSecondOfDay() + 3600;
 
@@ -88,6 +90,25 @@ class GbTransitParityTest {
     int end = LocalTime.of(7, 0).toSecondOfDay();
     assertThat(plan(algorithm(dtd2gtfs, sunday), "SHN", "BTN", sunday, start, end)).isEmpty();
     assertThat(plan(algorithm(gbTransit, sunday), "SHN", "BTN", sunday, start, end)).hasSize(1);
+  }
+
+  @Test
+  void aTrainThatFormsTheNextIsStayedAboard() {
+    // The 10:00 fast VIC -> BTN arrives 11:00 and forms the 11:25 West Coastway, by the sample's one in-seat row.
+    // Followed, the passenger for Portslade stays aboard: one train, no change at Brighton.
+    var wednesday = LocalDate.of(2026, 6, 3);
+    int start = LocalTime.of(9, 55).toSecondOfDay();
+    int end = LocalTime.of(10, 5).toSecondOfDay();
+    assertThat(plan(algorithm(gbTransit, wednesday), "VIC", "PLD", wednesday, start, end))
+      .containsExactly("36000-41640 VIC>PLD@36000-41640[VIC, ECR, GTW, HHE, BTN, HOV, PLD]");
+    assertThat(plan(withoutLinks(gbTransit, wednesday), "VIC", "PLD", wednesday, start, end))
+      .singleElement().asString().contains("VIC>BTN", "BTN>PLD");
+  }
+
+  private static RaptorAlgorithm withoutLinks(ExtendedGtfsRelationalDaoImpl dao, LocalDate date) {
+    return RaptorAlgorithmFactory.createFromDao(dao, CalendarServiceDataFactoryImpl.createService(dao),
+      new ServiceDate(date.getYear(), date.getMonthValue(), date.getDayOfMonth()),
+      (trip, stopTimes) -> new DefaultTrip(trip.getId().getId(), stopTimes), null);
   }
 
   private static RaptorAlgorithm algorithm(ExtendedGtfsRelationalDaoImpl dao, LocalDate date) {

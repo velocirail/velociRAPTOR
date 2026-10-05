@@ -95,7 +95,7 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
       switch (connection) {
         case ResultConnection(Trip trip, int startIndex, int endIndex) -> {
           // A multi-day overlay presents later service days as OffsetTrip wrappers over the base
-          // RailTrip. Unwrap to recover the RailTrip metadata (serviceId/trainUid/operator), but read
+          // RailTrip. Unwrap to recover the RailTrip metadata (trains/operator), but read
           // times from the trip's own stopTimes() so they carry any day offset (i.e. are absolute
           // from the start date) - OffsetTrip materialises offset stop times for reconstruction.
           RailTrip railTrip = railTripOf(trip);
@@ -106,15 +106,13 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
           Stop origin = originStopTime.stop();
           Stop destination = destinationStopTime.stop();
 
-          EndpointTrainUids uids = railTrip.trainUid() != null ? getEndpointTrainUids(railTrip.trainUid()) : null;
-
           legs.add(new Train(new Leg.RailLeg(
                   origin,
                   destination,
                   toDateTime(originStopTime.departureTime()),
                   toDateTime(destinationStopTime.arrivalTime()),
-                  uids != null ? uids.originTrainUid() : null,
-                  uids != null ? uids.destinationTrainUid() : null,
+                  toService(railTrip.boardingTrain(startIndex)),
+                  toService(railTrip.alightingTrain(endIndex)),
                   toTrainTrip(railTrip, stopTimes),
                   startIndex,
                   endIndex
@@ -184,12 +182,10 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
     return LocalDateTime.of(startDate, LocalTime.MIDNIGHT).plusSeconds(secondsSinceMidnight);
   }
 
-  // CIF associations that change headcode mid-journey store trainUid as "W12345_W67890".
-  // Split on "_" to get the headcode at the boarding stop (first) and alighting stop (last).
-  // For a non-associated trip the two values are identical.
-  private EndpointTrainUids getEndpointTrainUids(String uid) {
-    String[] uidList = uid.split("_");
-    return new EndpointTrainUids(uidList[0], uidList[uidList.length - 1]);
+  /** The train as it runs on a day: the query's date, or the next for a train that runs on the next day's timetable. */
+  private TrainService toService(TrainRun train) {
+    return new TrainService(train.tripId(), startDate.plusDays(train.dayOffset()), train.trainUid(),
+                            train.retailServiceId());
   }
 
   private static RailTrip railTripOf(Trip trip) {
@@ -200,31 +196,34 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
   private TrainTrip toTrainTrip(RailTrip trip, List<StopTime> stopTimes) {
     List<StopDateTime> railStopTimes = new ArrayList<>(stopTimes.size());
     for (int i = 0; i < stopTimes.size(); i++) {
-      railStopTimes.add(toStopDateTime(stopTimes.get(i), trip.platform(i)));
+      railStopTimes.add(toStopDateTime(stopTimes.get(i), trip.timetabledCall(i), trip.platform(i),
+                                       trip.stopHeadsign(i)));
     }
 
     return new TrainTrip(
-            trip.id(),
             List.copyOf(railStopTimes),
-            trip.serviceId(),
-            trip.trainUid(),
-            trip.retailServiceId(),
+            trip.trains().stream().map(this::toService).toList(),
             trip.headsign(),
             trip.mode(),
             trip.operator(),
-            trip.route()
+            trip.route(),
+            trip.associations()
     );
   }
 
-  private StopDateTime toStopDateTime(StopTime stopTime, @Nullable String platform) {
+  // The times are the routed call's, which carry any overlay day offset; whether a passenger may board and alight
+  // is the timetabled call's, which a through trip restricts for routing only.
+  private StopDateTime toStopDateTime(StopTime stopTime, StopTime timetabled, @Nullable String platform,
+                                      @Nullable String headsign) {
     return new StopDateTime(
             stopTime.stop(),
             toDateTime(stopTime.departureTime()),
             toDateTime(stopTime.arrivalTime()),
-            stopTime.canBoard(),
-            stopTime.canAlight(),
-            stopTime.pickup(),
-            stopTime.dropOff(),
-            platform);
+            timetabled.canBoard(),
+            timetabled.canAlight(),
+            timetabled.pickup(),
+            timetabled.dropOff(),
+            platform,
+            headsign);
   }
 }

@@ -621,7 +621,16 @@ sailing is 08:00. gb-transit can still write the unsummarised `links.txt` behind
 marked that for removal and the published feeds do not carry it, so it is not read.
 
 ### 10.2 Splits and joins are not routed on — LOW
-- [ ] Open.
+- [x] Fixed — `RaptorAlgorithmFactory` follows each in-seat row whose trains both run that day as a through trip,
+  boarded only before the association and left only after it, so the passenger stays aboard and a journey that does
+  not cross it still rides the train itself. A train that reaches the link after midnight may divide into, join or
+  form one on the following service day's timetable (the Caledonian Sleeper's Aberdeen and Fort William portions
+  leave Edinburgh at 04:28 on the next day): that run is followed, a day later on the first train's time-line. A
+  through trip links two trains; a chain of three (a train that joins
+  another that then divides) would still be planned as a change at the second. None occurs in the 2026-10-05 feed: on 10 and 13 October
+  no onward train links again. The response already
+  carries `associations` as a list, so following chains would not change its shape. Tests: `TripLinkTest`,
+  `GbTransitParityTest.aTrainThatFormsTheNextIsStayedAboard`, `RaptorResourceTest.aTrainThatFormsTheNextIsStayedAboard`.
 
 gb-transit keeps both portions of a dividing or joining train as trips of their own and states the coupling as a
 `transfer_type` 4 row in `transfers.txt`. The reader skips those rows. A through journey still routes, because the

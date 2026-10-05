@@ -5,7 +5,9 @@ import com.joshuaharwood.velociraptor.rail.Leg.FixedLink;
 import com.joshuaharwood.velociraptor.rail.Leg.RailLeg;
 import com.joshuaharwood.velociraptor.rail.RailJourneyFactory;
 import com.joshuaharwood.velociraptor.rail.RailTrip;
+import com.joshuaharwood.velociraptor.rail.TrainRun;
 import com.joshuaharwood.velociraptor.obabridge.RaptorAlgorithmFactory;
+import com.joshuaharwood.velociraptor.rail.Association;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
@@ -38,8 +40,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 @ApplicationScoped
@@ -108,20 +112,22 @@ public class RaptorController {
           var arr = toOffset(date, tl.stopTimes().getLast().arrivalTime());
           // Every trip the server builds is a RailTrip (RailTrips), so a train leg always has an operator.
           var rt = (RailTrip) tl.trip();
-          String originUid = null, destUid = null;
-          if (rt.trainUid() != null) {
-            var uids = rt.trainUid().split("_");
-            originUid = uids[0];
-            destUid = uids[uids.length - 1];
-          }
-          // The leg's stop times are a run of the trip's; find where it starts to read the platforms by index.
+          // The leg's stop times are a run of the trip's; find where it starts to read the rest by index.
           int start = rt.stopTimes().indexOf(tl.stopTimes().getFirst());
           int end = start + tl.stopTimes().size() - 1;
-          simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
+          // The headsign a passenger sees is the one where they board: a call's own, before a train divides, or
+          // else the trip's.
+          var headsign = rt.stopHeadsign(start) != null ? rt.stopHeadsign(start) : rt.headsign();
+          simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr,
+                                               toSmService(rt.boardingTrain(start), date),
+                                               toSmService(rt.alightingTrain(end), date),
                                                tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
                                                toSmOperator(rt.operator()), toSmRoute(rt.route()), rt.mode(),
-                                               rt.retailServiceId(), rt.headsign(),
+                                               headsign,
                                                rt.platform(start), rt.platform(end),
+                                               toSmAssociations(rt.associations(),
+                                                                k -> rt.stopTimes().get(k).stop().id(),
+                                                                k -> toSmService(rt.trainAfter(k), date), start, end),
                                                Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
           trainLegs++;
@@ -142,6 +148,40 @@ public class RaptorController {
     var arrival = toOffset(date, journey.arrivalTime());
     return new SimpleJourney(departure, arrival, Duration.between(departure, arrival),
                              Math.max(0, trainLegs - 1), simpleLegs);
+  }
+
+  /**
+   * The associations a leg rides through: those strictly between where it is boarded and where it is left. One at
+   * either end is not stayed aboard for - the passenger boards the train that leaves, or leaves the one that came.
+   */
+  private static List<com.joshuaharwood.velociraptor.server.http.dto.Association> toSmAssociations(
+      List<Association> associations, IntFunction<String> stopAt, IntFunction<TrainService> serviceAfter, int start,
+      int end) {
+    return IntStream.range(0, associations.size())
+                    .filter(k -> associations.get(k).stopIndex() > start && associations.get(k).stopIndex() < end)
+                    .mapToObj(k -> {
+                      var a = associations.get(k);
+                      return new com.joshuaharwood.velociraptor.server.http.dto.Association(
+                          stopAt.apply(a.stopIndex()), a.type(), serviceAfter.apply(k), a.headsign(),
+                          a.otherHeadsigns());
+                    })
+                    .toList();
+  }
+
+  private static List<com.joshuaharwood.velociraptor.server.http.dto.Association> toSmAssociations(
+      com.joshuaharwood.velociraptor.rail.TrainTrip trip, int start, int end) {
+    return toSmAssociations(trip.associations(), k -> trip.stopTimes().get(k).stop().id(),
+                            k -> toSmService(trip.services().get(k + 1)), start, end);
+  }
+
+  /** The train as it runs on a day: the query's date, or the next for a train on the next day's timetable. */
+  private static TrainService toSmService(TrainRun train, LocalDate date) {
+    return new TrainService(train.tripId(), date.plusDays(train.dayOffset()), train.trainUid(),
+                            train.retailServiceId());
+  }
+
+  private static TrainService toSmService(com.joshuaharwood.velociraptor.rail.TrainService service) {
+    return new TrainService(service.tripId(), service.serviceDate(), service.trainUid(), service.retailServiceId());
   }
 
   /**
@@ -188,7 +228,8 @@ public class RaptorController {
     return switch (leg) {
       case RailLeg rl -> new RailJourneyLeg.RailLeg(rl.origin().id(), rl.destination().id(),
                                                     atLondon(rl.departureTime()), atLondon(rl.arrivalTime()),
-                                                    rl.originTrainUid(), rl.destinationTrainUid(),
+                                                    toSmService(rl.originService()),
+                                                    toSmService(rl.destinationService()),
                                                     toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).pickUpType(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).dropOffType(),
@@ -196,6 +237,7 @@ public class RaptorController {
                                                     toSmRoute(rl.trainTrip().route()), rl.trainTrip().mode(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).platform(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).platform(),
+                                                    toSmAssociations(rl.trainTrip(), rl.startIndex(), rl.endIndex()),
                                                     rl.duration(), boardingInterchange);
       case FixedLink fl -> new RailJourneyLeg.FixedLink(fl.origin().id(), fl.destination().id(),
                                                         atLondon(fl.departureTime()), atLondon(fl.arrivalTime()),
@@ -216,8 +258,8 @@ public class RaptorController {
 
   private static RailTrainTrip toSmTrainTrip(com.joshuaharwood.velociraptor.rail.TrainTrip tt) {
     var stopTimes = tt.stopTimes().stream().map(RaptorController::toSmStopDateTime).toList();
-    return new RailTrainTrip(tt.tripId(), stopTimes, tt.serviceId(), tt.trainUid(),
-                             tt.retailServiceId(), tt.headsign(), tt.mode());
+    var services = tt.services().stream().map(RaptorController::toSmService).toList();
+    return new RailTrainTrip(stopTimes, services, tt.headsign(), tt.mode());
   }
 
   private static Operator toSmOperator(com.joshuaharwood.velociraptor.rail.Operator operator) {
@@ -231,7 +273,7 @@ public class RaptorController {
   private static RailStopDateTime toSmStopDateTime(com.joshuaharwood.velociraptor.rail.StopDateTime st) {
     return new RailStopDateTime(st.stop()
                                           .id(), atLondon(st.departureTime()), atLondon(st.arrivalTime()), st.isPickUp(), st.isDropOff(),
-                                st.pickUpType(), st.dropOffType(), st.platform());
+                                st.pickUpType(), st.dropOffType(), st.platform(), st.headsign());
   }
 
   @Startup
@@ -299,7 +341,7 @@ public class RaptorController {
 
     var algorithm = algorithmCache.computeIfAbsent(sd, d -> {
       cacheMiss.set(true);
-      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, railTrips::trip);
+      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, railTrips::trip, railTrips);
     });
     if (cacheMiss.get() && !precomputed) {
       cacheMisses.add(1);

@@ -63,8 +63,12 @@ class RaptorResourceTest {
             .body("[0].legs[0].destination",   is(DEST))
             .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
             .body("[0].legs[0].arrivalTime",   is(TRIP_ARRIVAL))
-            .body("[0].legs[0].originTrainUid", is(TRAIN_UID))
-            .body("[0].legs[0].destinationTrainUid", is(TRAIN_UID))
+            // One train: both ends are the same run of it, on the day searched.
+            .body("[0].legs[0].originService.tripId", is(TRIP_ID))
+            .body("[0].legs[0].originService.serviceDate", is(DATE))
+            .body("[0].legs[0].originService.trainUid", is(TRAIN_UID))
+            .body("[0].legs[0].originService.retailServiceId", is("SNB09"))
+            .body("[0].legs[0].destinationService.tripId", is(TRIP_ID))
             .body("[0].legs[0].originPickUpType", is("REGULAR"))
             .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
             .body("[0].legs[0].operator.code", is("SN"))
@@ -79,7 +83,6 @@ class RaptorResourceTest {
             .body("[0].legs[0].route.textColour", is("FFFFFF"))
             .body("[0].legs[0].route.url", nullValue())
             .body("[0].legs[0].transitMode", is("RAIL"))
-            .body("[0].legs[0].retailServiceId", is("SNB09"))
             .body("[0].legs[0].headsign", is("London Victoria"))
             .body("[0].legs[0].originPlatform", is("6"))
             .body("[0].legs[0].destinationPlatform", is("16"))
@@ -301,6 +304,60 @@ class RaptorResourceTest {
   }
 
   @Test
+  void aTrainThatFormsTheNextIsStayedAboard() {
+    // The 10:00 fast to BTN forms the 11:25 West Coastway, by the sample's one in-seat row: for Portslade the
+    // passenger stays aboard at Brighton, on one leg that says so. At VIC the train shows where it goes, Brighton.
+    var arrival = DATE + "T11:34:00+01:00";
+    given()
+            .queryParam("orig", "VIC")
+            .queryParam("dest", "PLD")
+            .queryParam("startDate", DATE + "T09:55:00+01:00")
+            .queryParam("endDate", DATE + "T10:05:00+01:00")
+            .when().get("/detail")
+            .then()
+            .statusCode(200)
+            .body("size()", is(1))
+            .body("[0].changes", is(0))
+            .body("[0].legs", hasSize(1))
+            .body("[0].legs[0].arrivalTime", is(arrival))
+            // The leg rides two trains: it boards the first, leaves the second, and the association names the second.
+            .body("[0].legs[0].originService.tripId", is("WA1000_20260601_20260628"))
+            .body("[0].legs[0].originService.trainUid", is("WA1000"))
+            .body("[0].legs[0].destinationService.tripId", is("WH1125_20260601_20260628"))
+            .body("[0].legs[0].destinationService.trainUid", is("WH1125"))
+            .body("[0].legs[0].trainTrip.services.tripId",
+                  contains("WA1000_20260601_20260628", "WH1125_20260601_20260628"))
+            .body("[0].legs[0].trainTrip", not(hasKey("tripId")))
+            .body("[0].legs[0].associations", hasSize(1))
+            .body("[0].legs[0].associations[0].service.tripId", is("WH1125_20260601_20260628"))
+            .body("[0].legs[0].associations[0].service.serviceDate", is(DATE))
+            .body("[0].legs[0].associations[0].stop", is("BTN"))
+            .body("[0].legs[0].associations[0].type", is("NEXT"))
+            .body("[0].legs[0].associations[0].headsign", is("Portsmouth Harbour"))
+            .body("[0].legs[0].associations[0].otherHeadsigns", empty())
+            .body("[0].legs[0].trainTrip.headsign", is("Portsmouth Harbour"))
+            .body("[0].legs[0].trainTrip.stopTimes[0].headsign", is("Brighton"))
+            // The train sets down at every call before Brighton, though only a journey on past it rides this trip.
+            .body("[0].legs[0].trainTrip.stopTimes[1].dropOff", is(true));
+    given()
+            .queryParam("orig", "VIC")
+            .queryParam("dest", "PLD")
+            .queryParam("startDate", DATE + "T09:55:00+01:00")
+            .queryParam("endDate", DATE + "T10:05:00+01:00")
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body("[0].changes", is(0))
+            .body("[0].legs", hasSize(1))
+            .body("[0].legs[0].arrivalTime", is(arrival))
+            .body("[0].legs[0].headsign", is("Brighton"))
+            .body("[0].legs[0].originService.tripId", is("WA1000_20260601_20260628"))
+            .body("[0].legs[0].destinationService.tripId", is("WH1125_20260601_20260628"))
+            .body("[0].legs[0].associations[0].type", is("NEXT"))
+            .body("[0].legs[0].associations[0].headsign", is("Portsmouth Harbour"));
+  }
+
+  @Test
   void stops_listsEachStationByTheCodeJourneysUse() {
     // Brighton is a station with platforms beneath it in the gb-transit sample; it is listed once, as the station.
     given()
@@ -348,9 +405,14 @@ class RaptorResourceTest {
             .body("[0].legs[0].origin", is(ORIG))
             .body("[0].legs[0].departureTime", is(TRIP_DEPARTURE))
             .body("[0].legs[0].arrivalTime", is(TRIP_ARRIVAL))
-            .body("[0].legs[0].originTrainUid", is(TRAIN_UID))
-            .body("[0].legs[0].trainTrip.tripId", is(TRIP_ID))
-            .body("[0].legs[0].trainTrip.trainUid", is(TRAIN_UID))
+            // An ordinary leg rides one train: the trip's one service, and both ends of the leg.
+            .body("[0].legs[0].trainTrip.services", hasSize(1))
+            .body("[0].legs[0].trainTrip.services[0].tripId", is(TRIP_ID))
+            .body("[0].legs[0].trainTrip.services[0].serviceDate", is(DATE))
+            .body("[0].legs[0].trainTrip.services[0].trainUid", is(TRAIN_UID))
+            .body("[0].legs[0].trainTrip.services[0].retailServiceId", is("SNB09"))
+            .body("[0].legs[0].originService.tripId", is(TRIP_ID))
+            .body("[0].legs[0].destinationService.tripId", is(TRIP_ID))
             .body("[0].legs[0].originPickUpType", is("REGULAR"))
             .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
             .body("[0].legs[0].trainTrip.stopTimes[0].pickUpType", is("REGULAR"))
@@ -359,7 +421,6 @@ class RaptorResourceTest {
             .body("[0].legs[0].trainTrip.stopTimes[0].dropOff", is(false))
             .body("[0].legs[0].trainTrip.stopTimes", hasSize(5))
             .body("[0].legs[0].trainTrip.stopTimes.platform", contains("6", "2", "4", "2", "16"))
-            .body("[0].legs[0].trainTrip.retailServiceId", is("SNB09"))
             // The feed's agency id is the operator's, not the trip's.
             .body("[0].legs[0].operator.agencyId", is("=SN"))
             .body("[0].legs[0].trainTrip", not(hasKey("agencyId")))
@@ -550,7 +611,7 @@ class RaptorResourceTest {
             .body("size()", is(1))
             .body("[0].legs[0].departureTime", is(OWL_DEPARTURE))
             .body("[0].legs[0].arrivalTime", is(OWL_ARRIVAL))
-            .body("[0].legs[0].originTrainUid", is("WE2415"));
+            .body("[0].legs[0].originService.trainUid", is("WE2415"));
   }
 
   @Test
@@ -566,7 +627,7 @@ class RaptorResourceTest {
             .statusCode(200)
             .body("size()", is(1))
             .body("[0].legs[0].departureTime", is(OWL_DEPARTURE))
-            .body("[0].legs[0].trainTrip.tripId", is("WE2415_20260601_20260628"))
+            .body("[0].legs[0].trainTrip.services[0].tripId", is("WE2415_20260601_20260628"))
             .body("[0].legs[0].trainTrip.stopTimes[1].stop", is("ECR"))
             .body("[0].legs[0].trainTrip.stopTimes[1].pickUpType", is("NONE"))
             .body("[0].legs[0].trainTrip.stopTimes[1].pickUp", is(false))
@@ -601,8 +662,8 @@ class RaptorResourceTest {
             .body("[0].legs[1].origin", is("VIC"))
             .body("[0].legs[1].destination", is("EUS"))
             .body("[0].legs[1].mode", is("TUBE"))
-            // A fixed link is not a train: it has no UIDs, operator or pickup types, rather than empty ones.
-            .body("[0].legs[1]", not(anyOf(hasKey("operator"), hasKey("originTrainUid"), hasKey("destinationTrainUid"),
+            // A fixed link is not a train: it has no services, operator or pickup types, rather than empty ones.
+            .body("[0].legs[1]", not(anyOf(hasKey("operator"), hasKey("originService"), hasKey("destinationService"),
                                            hasKey("originPickUpType"), hasKey("destinationDropOffType"))))
             // Leaves VIC after its 10 minute interchange, and that interchange is reported on the leg it delays.
             .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))
@@ -614,7 +675,7 @@ class RaptorResourceTest {
             .body("[0].legs[2].departureTime", is(DATE + "T14:50:00+01:00"))
             .body("[0].legs[2].arrivalTime", is(DATE + "T15:25:00+01:00"))
             .body("[0].legs[2].operator.code", is("LM"))
-            .body("[0].legs[2].originTrainUid", is("MA1450"))
+            .body("[0].legs[2].originService.trainUid", is("MA1450"))
             .body("[0].legs[2].boardingInterchange", is("PT10M"))
             .body("[0].departureTime", is(DATE + "T13:00:00+01:00"))
             .body("[0].arrivalTime", is(DATE + "T15:25:00+01:00"))
@@ -711,7 +772,7 @@ class RaptorResourceTest {
             .body("size()", greaterThan(0))
             .body("[0].legs[0].type", is("FIXED_LEG"))
             .body("[0].legs[0].mode", is("TUBE"))
-            .body("[0].legs[0]", not(anyOf(hasKey("originTrainUid"), hasKey("destinationTrainUid"))));
+            .body("[0].legs[0]", not(anyOf(hasKey("originService"), hasKey("destinationService"))));
 
     // ASI is reached only by the walk from AFK, which ends the journey.
     given()

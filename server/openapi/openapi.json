@@ -2,6 +2,34 @@
   "openapi" : "3.1.0",
   "components" : {
     "schemas" : {
+      "Association" : {
+        "required" : [ "stop", "type", "service", "headsign", "otherHeadsigns" ],
+        "type" : "object",
+        "properties" : {
+          "stop" : {
+            "type" : "string"
+          },
+          "type" : {
+            "$ref" : "#/components/schemas/AssociationType"
+          },
+          "service" : {
+            "$ref" : "#/components/schemas/TrainService"
+          },
+          "headsign" : {
+            "type" : [ "string", "null" ]
+          },
+          "otherHeadsigns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "AssociationType" : {
+        "type" : "string",
+        "enum" : [ "DIVIDE", "JOIN", "NEXT" ]
+      },
       "Duration" : {
         "type" : "string",
         "format" : "duration",
@@ -202,7 +230,7 @@
         }
       },
       "RailLeg" : {
-        "required" : [ "type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid", "destinationTrainUid", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType", "operator", "route", "transitMode", "originPlatform", "destinationPlatform", "duration", "boardingInterchange" ],
+        "required" : [ "type", "origin", "destination", "departureTime", "arrivalTime", "originService", "destinationService", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType", "operator", "route", "transitMode", "originPlatform", "destinationPlatform", "associations", "duration", "boardingInterchange" ],
         "type" : "object",
         "properties" : {
           "origin" : {
@@ -217,11 +245,11 @@
           "arrivalTime" : {
             "$ref" : "#/components/schemas/OffsetDateTime"
           },
-          "originTrainUid" : {
-            "type" : [ "string", "null" ]
+          "originService" : {
+            "$ref" : "#/components/schemas/TrainService"
           },
-          "destinationTrainUid" : {
-            "type" : [ "string", "null" ]
+          "destinationService" : {
+            "$ref" : "#/components/schemas/TrainService"
           },
           "trainTrip" : {
             "$ref" : "#/components/schemas/RailTrainTrip"
@@ -255,6 +283,12 @@
           "destinationPlatform" : {
             "type" : [ "string", "null" ]
           },
+          "associations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Association"
+            }
+          },
           "duration" : {
             "$ref" : "#/components/schemas/Duration"
           },
@@ -274,7 +308,7 @@
       },
       "RailStopDateTime" : {
         "type" : "object",
-        "required" : [ "stop", "departureTime", "arrivalTime", "pickUp", "dropOff", "pickUpType", "dropOffType", "platform" ],
+        "required" : [ "stop", "departureTime", "arrivalTime", "pickUp", "dropOff", "pickUpType", "dropOffType", "platform", "headsign" ],
         "properties" : {
           "stop" : {
             "type" : "string"
@@ -299,30 +333,27 @@
           },
           "platform" : {
             "type" : [ "string", "null" ]
+          },
+          "headsign" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
       "RailTrainTrip" : {
         "type" : "object",
-        "required" : [ "tripId", "stopTimes", "serviceId", "trainUid", "retailServiceId", "headsign", "transitMode" ],
+        "required" : [ "stopTimes", "services", "headsign", "transitMode" ],
         "properties" : {
-          "tripId" : {
-            "type" : "string"
-          },
           "stopTimes" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/RailStopDateTime"
             }
           },
-          "serviceId" : {
-            "type" : "string"
-          },
-          "trainUid" : {
-            "type" : [ "string", "null" ]
-          },
-          "retailServiceId" : {
-            "type" : [ "string", "null" ]
+          "services" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrainService"
+            }
           },
           "headsign" : {
             "type" : [ "string", "null" ]
@@ -470,7 +501,7 @@
         }
       },
       "SimpleRailLeg" : {
-        "required" : [ "type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "route", "transitMode", "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "duration", "boardingInterchange" ],
+        "required" : [ "type", "origin", "destination", "departureTime", "arrivalTime", "originService", "destinationService", "originPickUpType", "destinationDropOffType", "operator", "route", "transitMode", "headsign", "originPlatform", "destinationPlatform", "associations", "duration", "boardingInterchange" ],
         "type" : "object",
         "properties" : {
           "origin" : {
@@ -485,11 +516,11 @@
           "arrivalTime" : {
             "$ref" : "#/components/schemas/OffsetDateTime"
           },
-          "originTrainUid" : {
-            "type" : [ "string", "null" ]
+          "originService" : {
+            "$ref" : "#/components/schemas/TrainService"
           },
-          "destinationTrainUid" : {
-            "type" : [ "string", "null" ]
+          "destinationService" : {
+            "$ref" : "#/components/schemas/TrainService"
           },
           "originPickUpType" : {
             "$ref" : "#/components/schemas/PickupDropOffType"
@@ -506,9 +537,6 @@
           "transitMode" : {
             "$ref" : "#/components/schemas/TransitMode"
           },
-          "retailServiceId" : {
-            "type" : [ "string", "null" ]
-          },
           "headsign" : {
             "type" : [ "string", "null" ]
           },
@@ -517,6 +545,12 @@
           },
           "destinationPlatform" : {
             "type" : [ "string", "null" ]
+          },
+          "associations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Association"
+            }
           },
           "duration" : {
             "$ref" : "#/components/schemas/Duration"
@@ -558,6 +592,24 @@
           },
           "stepFree" : {
             "type" : [ "boolean", "null" ]
+          }
+        }
+      },
+      "TrainService" : {
+        "type" : "object",
+        "required" : [ "tripId", "serviceDate", "trainUid", "retailServiceId" ],
+        "properties" : {
+          "tripId" : {
+            "type" : "string"
+          },
+          "serviceDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "trainUid" : {
+            "type" : [ "string", "null" ]
+          },
+          "retailServiceId" : {
+            "type" : [ "string", "null" ]
           }
         }
       },

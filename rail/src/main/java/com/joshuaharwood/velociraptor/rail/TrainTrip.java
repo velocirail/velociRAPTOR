@@ -4,13 +4,16 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-public record TrainTrip(String tripId,
-                        List<StopDateTime> stopTimes,
-                        String serviceId,
-                        @Nullable String trainUid,
-                        @Nullable String retailServiceId,
+/**
+ * @param services     the trains the trip is made of, in order: one, or one more than it has associations, the k-th
+ *                     association being between the k-th and (k+1)-th
+ * @param associations where the trip stays aboard from one train onto the next, in call order
+ */
+public record TrainTrip(List<StopDateTime> stopTimes,
+                        List<TrainService> services,
                         @Nullable String headsign,
                         TransitMode mode,
                         Operator operator,
-                        Route route) {
+                        Route route,
+                        List<Association> associations) {
 }

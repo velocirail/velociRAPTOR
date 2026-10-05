@@ -18,15 +18,18 @@ import com.joshuaharwood.velociraptor.raptor.model.StopTime;
 import com.joshuaharwood.velociraptor.raptor.model.Transfer;
 import com.joshuaharwood.velociraptor.raptor.model.Trip;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import org.onebusaway.gtfs.model.AgencyAndId;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,16 +56,32 @@ public final class RaptorAlgorithmFactory {
                                               CalendarService calendarService,
                                               ServiceDate serviceDate) {
     return createFromDao(dao, calendarService, serviceDate,
-            (obaTrip, stopTimes) -> new DefaultTrip(obaTrip.getId().getId(), stopTimes));
+            (obaTrip, stopTimes) -> new DefaultTrip(obaTrip.getId().getId(), stopTimes),
+            (link, stopTimes, _) -> new DefaultTrip(link.from().id() + "+" + link.to().id(), stopTimes));
   }
 
+  /**
+   * @param tripFactory builds each trip that runs on the service date
+   * @param tripLinker  builds the through trip for each divide, join and onward working between two of them, which
+   *                    is offered beside the two trips so a passenger can stay aboard rather than change; null to
+   *                    plan each as a change of trains
+   */
   public static RaptorAlgorithm createFromDao(ExtendedGtfsRelationalDaoImpl dao,
                                               CalendarService calendarService,
                                               ServiceDate serviceDate,
-                                              BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> tripFactory) {
+                                              BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> tripFactory,
+                                              @Nullable TripLinker tripLinker) {
     final Function<org.onebusaway.gtfs.model.Stop, Stop> toStop = stopLookup(dao);
-    final List<Trip> trips = tripsOnServiceDate(dao, calendarService, serviceDate, toStop, tripFactory);
-    return assemble(dao, toStop, trips, serviceDate);
+    final Map<AgencyAndId, Trip> trips = tripsOnServiceDate(dao, calendarService, serviceDate, toStop, tripFactory);
+    final List<Trip> all = new ArrayList<>(trips.values());
+    if (tripLinker != null) {
+      // A train that runs past midnight may divide into, join or form one on the following service day.
+      final Set<AgencyAndId> nextDayServices = Set.copyOf(calendarService.getServiceIdsOnDate(serviceDate.next()));
+      final Function<org.onebusaway.gtfs.model.Trip, @Nullable Trip> nextDay =
+        obaTrip -> nextDayServices.contains(obaTrip.getServiceId()) ? toTrip(obaTrip, dao, toStop, tripFactory) : null;
+      all.addAll(TripLinks.follow(dao, trips, nextDay, toStop, tripLinker));
+    }
+    return assemble(dao, toStop, all, serviceDate);
   }
 
   /**
@@ -75,18 +94,20 @@ public final class RaptorAlgorithmFactory {
     return obaStop -> stopLookup.computeIfAbsent(profile.stopKey(obaStop), Stop::new);
   }
 
-  /** Active trips on {@code serviceDate}, converted to raptor {@link Trip}s. */
-  private static List<Trip> tripsOnServiceDate(ExtendedGtfsRelationalDaoImpl dao,
-                                               CalendarService calendarService,
-                                               ServiceDate serviceDate,
-                                               Function<org.onebusaway.gtfs.model.Stop, Stop> toStop,
-                                               BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> tripFactory) {
+  /** Active trips on {@code serviceDate}, converted to raptor {@link Trip}s, by trip id in the order they are read. */
+  private static Map<AgencyAndId, Trip> tripsOnServiceDate(ExtendedGtfsRelationalDaoImpl dao,
+                                                           CalendarService calendarService,
+                                                           ServiceDate serviceDate,
+                                                           Function<org.onebusaway.gtfs.model.Stop, Stop> toStop,
+                                                           BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> tripFactory) {
     // Active-service filter lives here (not in RouteScanner): the raptor core trusts every trip it sees runs that day.
-    return calendarService.getServiceIdsOnDate(serviceDate).stream()
-      .map(dao::getTripsForServiceId)
-      .flatMap(Collection::stream)
-      .map(obaTrip -> toTrip(obaTrip, dao, toStop, tripFactory))
-      .toList();
+    final Map<AgencyAndId, Trip> trips = new LinkedHashMap<>();
+    for (AgencyAndId serviceId : calendarService.getServiceIdsOnDate(serviceDate)) {
+      for (org.onebusaway.gtfs.model.Trip obaTrip : dao.getTripsForServiceId(serviceId)) {
+        trips.put(obaTrip.getId(), toTrip(obaTrip, dao, toStop, tripFactory));
+      }
+    }
+    return trips;
   }
 
   /**

@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Schema(oneOf = {RailJourneyLeg.RailLeg.class, RailJourneyLeg.FixedLink.class},
         discriminatorProperty = "type",
@@ -37,16 +38,16 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
      */
     @Nullable Duration boardingInterchange();
 
-    @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid",
-        "destinationTrainUid", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType",
-        "operator", "route", "transitMode", "originPlatform", "destinationPlatform", "duration",
-        "boardingInterchange"})
+    @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "originService",
+        "destinationService", "trainTrip", "startIndex", "endIndex",
+        "originPickUpType", "destinationDropOffType", "operator", "route", "transitMode", "originPlatform",
+        "destinationPlatform", "associations", "duration", "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
                    OffsetDateTime departureTime,
                    OffsetDateTime arrivalTime,
-                   @Schema(nullable = true) @Nullable String originTrainUid,
-                   @Schema(nullable = true) @Nullable String destinationTrainUid,
+                   TrainService originService,
+                   TrainService destinationService,
                    RailTrainTrip trainTrip,
                    int startIndex,
                    int endIndex,
@@ -57,6 +58,7 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
                    TransitMode transitMode,
                    @Schema(nullable = true) @Nullable String originPlatform,
                    @Schema(nullable = true) @Nullable String destinationPlatform,
+                   List<Association> associations,
                    Duration duration,
                    @Schema(nullable = true) @Nullable Duration boardingInterchange) implements RailJourneyLeg {
         // type() is not a record component, so Jackson only writes it when told to.

@@ -30,7 +30,7 @@ class OpenApiResponseSchemaTest {
   @ParameterizedTest
   @ValueSource(strings = {"SimpleJourney", "SimpleRailLeg", "SimpleFixedLink", "RailJourney", "RailLeg", "FixedLink",
     "RailTrainTrip", "RailStopDateTime", "Operator",
-    "Route", "Station", "ServerInfo"})
+    "Association", "TrainService", "Route", "Station", "ServerInfo"})
   void everyFieldOfAResponseTypeIsRequired(String name) throws IOException {
     var schema = schemas().path(name);
     assertThat(schema.isMissingNode()).as("%s is in the document", name).isFalse();
@@ -46,8 +46,8 @@ class OpenApiResponseSchemaTest {
 
   @Test
   void aFixedLinkHasNoTrainFields() throws IOException {
-    var trainOnly = Set.of("originTrainUid", "destinationTrainUid", "operator", "route", "transitMode",
-                           "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "originPickUpType",
+    var trainOnly = Set.of("originService", "destinationService", "operator", "route", "transitMode", "headsign",
+                           "originPlatform", "destinationPlatform", "associations", "originPickUpType",
                            "destinationDropOffType");
     for (var name : Set.of("SimpleFixedLink", "FixedLink")) {
       var properties = new TreeSet<String>();
@@ -67,10 +67,8 @@ class OpenApiResponseSchemaTest {
   }
 
   @Test
-  void aTrainLegsUidIsNullableNotOptional() throws IOException {
-    for (var name : Set.of("SimpleRailLeg", "RailLeg")) {
-      var uid = schemas().path(name).path("properties").path("originTrainUid");
-      assertThat(uid.path("type").toString()).as(name).contains("\"null\"");
-    }
+  void aServicesUidIsNullableNotOptional() throws IOException {
+    var uid = schemas().path("TrainService").path("properties").path("trainUid");
+    assertThat(uid.path("type").toString()).contains("\"null\"");
   }
 }

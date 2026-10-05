@@ -37,9 +37,9 @@ class RailJourneyFactoryFixedLinkOnlyTest {
   void aJourneyEndingWithAFixedLinkIsReturned() {
     var trip = new RailTrip("t1",
         List.of(new StopTime(A, 1000, 1000, true, false), new StopTime(B, 1600, 1600, false, true)),
-        "svc", null, null, null, TransitMode.RAIL,
+        List.of(new TrainRun("t", 0, null, null)), null, TransitMode.RAIL,
         new Operator("XX", "XX", null, null, null),
-        new Route("XX", null, null, null, null, null), List.of());
+        new Route("XX", null, null, null, null, null), List.of(), List.of(), List.of(), List.of());
     Map<Stop, Map<Integer, ResultConnectionIndex>> kConnections = Map.of(
         B, Map.of(1, new ResultConnection(trip, 0, 1)),
         W, Map.of(2, walk(B, W)));

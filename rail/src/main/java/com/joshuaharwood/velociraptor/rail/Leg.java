@@ -42,8 +42,8 @@ public sealed interface Leg {
           Stop destination,
           LocalDateTime departureTime,
           LocalDateTime arrivalTime,
-          @Nullable String originTrainUid,
-          @Nullable String destinationTrainUid,
+          TrainService originService,
+          TrainService destinationService,
           TrainTrip trainTrip,
           int startIndex,
           int endIndex

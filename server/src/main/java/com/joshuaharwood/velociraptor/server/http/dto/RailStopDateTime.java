@@ -6,9 +6,13 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.OffsetDateTime;
 
-/** @param platform the platform the train calls at, e.g. {@code 5} or {@code 1F}; {@code null} where the feed names none */
+/**
+ * @param platform the platform the train calls at, e.g. {@code 5} or {@code 1F}; {@code null} where the feed names none
+ * @param headsign where the train is going as this call shows it, e.g. {@code Portsmouth Harbour and Bognor Regis}
+ *                 before it divides; {@code null} where the call shows the trip's own headsign
+ */
 @Schema(requiredProperties = {"stop", "departureTime", "arrivalTime", "pickUp", "dropOff", "pickUpType", "dropOffType",
-    "platform"})
+    "platform", "headsign"})
 public record RailStopDateTime(String stop,
                                        OffsetDateTime departureTime,
                                        OffsetDateTime arrivalTime,
@@ -16,5 +20,6 @@ public record RailStopDateTime(String stop,
                                        boolean dropOff,
                                        PickupDropOffType pickUpType,
                                        PickupDropOffType dropOffType,
-                                       @Schema(nullable = true) @Nullable String platform) {
+                                       @Schema(nullable = true) @Nullable String platform,
+                                       @Schema(nullable = true) @Nullable String headsign) {
 }

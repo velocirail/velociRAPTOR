@@ -2,6 +2,35 @@
 openapi: 3.1.0
 components:
   schemas:
+    Association:
+      required:
+      - stop
+      - type
+      - service
+      - headsign
+      - otherHeadsigns
+      type: object
+      properties:
+        stop:
+          type: string
+        type:
+          $ref: "#/components/schemas/AssociationType"
+        service:
+          $ref: "#/components/schemas/TrainService"
+        headsign:
+          type:
+          - string
+          - "null"
+        otherHeadsigns:
+          type: array
+          items:
+            type: string
+    AssociationType:
+      type: string
+      enum:
+      - DIVIDE
+      - JOIN
+      - NEXT
     Duration:
       type: string
       format: duration
@@ -206,8 +235,8 @@ components:
       - destination
       - departureTime
       - arrivalTime
-      - originTrainUid
-      - destinationTrainUid
+      - originService
+      - destinationService
       - trainTrip
       - startIndex
       - endIndex
@@ -218,6 +247,7 @@ components:
       - transitMode
       - originPlatform
       - destinationPlatform
+      - associations
       - duration
       - boardingInterchange
       type: object
@@ -230,14 +260,10 @@ components:
           $ref: "#/components/schemas/OffsetDateTime"
         arrivalTime:
           $ref: "#/components/schemas/OffsetDateTime"
-        originTrainUid:
-          type:
-          - string
-          - "null"
-        destinationTrainUid:
-          type:
-          - string
-          - "null"
+        originService:
+          $ref: "#/components/schemas/TrainService"
+        destinationService:
+          $ref: "#/components/schemas/TrainService"
         trainTrip:
           $ref: "#/components/schemas/RailTrainTrip"
         startIndex:
@@ -264,6 +290,10 @@ components:
           type:
           - string
           - "null"
+        associations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Association"
         duration:
           $ref: "#/components/schemas/Duration"
         boardingInterchange:
@@ -288,6 +318,7 @@ components:
       - pickUpType
       - dropOffType
       - platform
+      - headsign
       properties:
         stop:
           type: string
@@ -307,33 +338,26 @@ components:
           type:
           - string
           - "null"
+        headsign:
+          type:
+          - string
+          - "null"
     RailTrainTrip:
       type: object
       required:
-      - tripId
       - stopTimes
-      - serviceId
-      - trainUid
-      - retailServiceId
+      - services
       - headsign
       - transitMode
       properties:
-        tripId:
-          type: string
         stopTimes:
           type: array
           items:
             $ref: "#/components/schemas/RailStopDateTime"
-        serviceId:
-          type: string
-        trainUid:
-          type:
-          - string
-          - "null"
-        retailServiceId:
-          type:
-          - string
-          - "null"
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainService"
         headsign:
           type:
           - string
@@ -489,17 +513,17 @@ components:
       - destination
       - departureTime
       - arrivalTime
-      - originTrainUid
-      - destinationTrainUid
+      - originService
+      - destinationService
       - originPickUpType
       - destinationDropOffType
       - operator
       - route
       - transitMode
-      - retailServiceId
       - headsign
       - originPlatform
       - destinationPlatform
+      - associations
       - duration
       - boardingInterchange
       type: object
@@ -512,14 +536,10 @@ components:
           $ref: "#/components/schemas/OffsetDateTime"
         arrivalTime:
           $ref: "#/components/schemas/OffsetDateTime"
-        originTrainUid:
-          type:
-          - string
-          - "null"
-        destinationTrainUid:
-          type:
-          - string
-          - "null"
+        originService:
+          $ref: "#/components/schemas/TrainService"
+        destinationService:
+          $ref: "#/components/schemas/TrainService"
         originPickUpType:
           $ref: "#/components/schemas/PickupDropOffType"
         destinationDropOffType:
@@ -530,10 +550,6 @@ components:
           $ref: "#/components/schemas/Route"
         transitMode:
           $ref: "#/components/schemas/TransitMode"
-        retailServiceId:
-          type:
-          - string
-          - "null"
         headsign:
           type:
           - string
@@ -546,6 +562,10 @@ components:
           type:
           - string
           - "null"
+        associations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Association"
         duration:
           $ref: "#/components/schemas/Duration"
         boardingInterchange:
@@ -586,6 +606,26 @@ components:
         stepFree:
           type:
           - boolean
+          - "null"
+    TrainService:
+      type: object
+      required:
+      - tripId
+      - serviceDate
+      - trainUid
+      - retailServiceId
+      properties:
+        tripId:
+          type: string
+        serviceDate:
+          $ref: "#/components/schemas/LocalDate"
+        trainUid:
+          type:
+          - string
+          - "null"
+        retailServiceId:
+          type:
+          - string
           - "null"
     TransitMode:
       type: string

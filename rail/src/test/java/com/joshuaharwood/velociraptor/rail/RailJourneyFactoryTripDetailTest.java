@@ -33,24 +33,30 @@ class RailJourneyFactoryTripDetailTest {
 
   @Test
   void eachCallCarriesThePlatformAtTheSameIndexAndTheTripItsDetail() {
-    var trip = new RailTrip("t1", CALLS, "svc", "W12345", "SN123400", "Seaford", TransitMode.REPLACEMENT_BUS,
-                            SOUTHERN, SOUTHERN_RRB, Arrays.<@Nullable String>asList("5", null, "1F"));
+    var trip = new RailTrip("t1", CALLS, List.of(new TrainRun("t", 0, "W12345", "SN123400")), "Seaford",
+                            TransitMode.REPLACEMENT_BUS,
+                            SOUTHERN, SOUTHERN_RRB, Arrays.<@Nullable String>asList("5", null, "1F"),
+                            List.of(), List.of(), List.of());
 
     var leg = legOf(trip);
 
     assertThat(leg.trainTrip().stopTimes()).map(StopDateTime::platform).containsExactly("5", null, "1F");
-    assertThat(leg.trainTrip().retailServiceId()).isEqualTo("SN123400");
+    // One train, so both ends of the leg and the trip's one service are the same run, on the query's date.
+    var service = new TrainService("t", START, "W12345", "SN123400");
+    assertThat(leg.trainTrip().services()).containsExactly(service);
+    assertThat(leg.originService()).isEqualTo(service);
+    assertThat(leg.destinationService()).isEqualTo(service);
     assertThat(leg.trainTrip().headsign()).isEqualTo("Seaford");
     assertThat(leg.trainTrip().mode()).isEqualTo(TransitMode.REPLACEMENT_BUS);
-    assertThat(leg.trainTrip().operator()).isEqualTo(SOUTHERN);
     assertThat(leg.trainTrip().route()).isEqualTo(SOUTHERN_RRB);
+    assertThat(leg.trainTrip().operator()).isEqualTo(SOUTHERN);
   }
 
   @Test
   void aTripWhoseFeedNamesNoPlatformsHasNoneAtAnyCall() {
-    var trip = new RailTrip("t1", CALLS, "svc", null, null, null, TransitMode.RAIL,
+    var trip = new RailTrip("t1", CALLS, List.of(new TrainRun("t", 0, null, null)), null, TransitMode.RAIL,
         new Operator("XX", "XX", null, null, null),
-        new Route("XX", null, null, null, null, null), List.of());
+        new Route("XX", null, null, null, null, null), List.of(), List.of(), List.of(), List.of());
 
     assertThat(legOf(trip).trainTrip().stopTimes()).map(StopDateTime::platform).containsOnlyNulls();
   }
