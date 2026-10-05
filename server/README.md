@@ -21,14 +21,35 @@ All endpoints are `GET` and return JSON arrays of journeys.
   (`2026-06-03T12:30:00+01:00`, `2026-06-03T11:30:00Z`), the same form the responses use. They are
   moved onto the Europe/London wall-clock before use: the service date is `startDate`'s London date,
   and the window is expressed in seconds from that date's midnight, so an `endDate` on the following
-  day (> 86400s) correctly includes GTFS after-midnight departures past 24:00.
+  day (> 86400s) correctly includes GTFS after-midnight departures past 24:00. `endDate` must be after
+  `startDate`, compared as instants; one at or before it is a 400 with an RFC 9457 `application/problem+json` body whose `detail` says so.
 
   A zone-less value (`2026-06-03T12:30:00`) is still accepted and read as Europe/London wall-clock,
-  but is deprecated and logged at WARN. Anything else is a 400; the server log names the parameter.
+  but is deprecated and logged at WARN. Anything else is a 400 `application/problem+json` whose
+  `detail` names the parameter.
 
 A search covers a single service day. Fixed-link use is governed by the
 `velociraptor.raptor.fixedlinks.*` settings documented in the [root README](../README.md): by
 default none of them applies: a journey may begin or end with a fixed link, or use two in a row.
+
+### Legs
+
+A leg of either kind of journey is a rail leg or a fixed link, told apart by its `type`: `RAIL_LEG` or
+`FIXED_LEG`. Each type carries only the fields that apply to it:
+
+| | rail leg | fixed link |
+|---|---|---|
+| `origin`, `destination`, `departureTime`, `arrivalTime`, `duration` | yes | yes |
+| `boardingInterchange` | yes, `null` on the first leg | yes, `null` on the first leg |
+| `originTrainUid`, `destinationTrainUid`, `operator` | yes, `null` where the trip has none | not present |
+| `originPickUpType`, `destinationDropOffType` | yes | not present |
+| `mode` | not present | yes, `null` where the feed gives none |
+
+A field a type does not have is left out, never sent as `null`; a field it has is always present,
+`null` where there is no value: a trip with no train UID, such as a TfL trip, is still a rail leg,
+with null UIDs. `/detail` rail legs also carry the train's `trainTrip` and the `startIndex` and `endIndex`
+of the leg within it. The OpenAPI document marks every field of every response type required, and the
+ones that may be null nullable; `OpenApiResponseSchemaTest` keeps it that way.
 
 ### Example
 
@@ -38,10 +59,36 @@ curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:
 
 ## Errors
 
-- **400** for a missing parameter, for `orig` or `dest` also given in `notVia`, and for a window
-  parameter that is not an ISO 8601 date-time.
-- **503** with `Retry-After: 10` and the body `{"error": "Server at capacity, please try again later"}`
-  when the bulkhead is full or a query exceeds its timeout (`FaultToleranceExceptionMapper`).
+Every error the API returns is an RFC 9457 `application/problem+json` body, produced by
+`quarkus-http-problem`. Its `OASFilter` fills in the problem content for any error response an
+operation declares, which is why the `@APIResponse` annotations carry a description but no schema.
+
+That includes the 503 from `FaultToleranceExceptionMapper`: a saturated bulkhead or a timed-out
+query is the same shape as everything else, with `Retry-After` still set, and its `detail` says
+which of the two it was.
+
+The errors the API raises itself are built with `HttpProblem.builder()`, with a `detail` that says why the
+request was rejected, in terms of the request:
+
+| Status | When | `detail`, for example |
+|---|---|---|
+| 400 | `endDate` is not after `startDate` | `endDate=... must be after startDate=...: the window holds no departures.` |
+| 400 | `orig` or `dest` is in `notVia` | `notVia=[BTN] includes the origin, orig=BTN: a journey cannot avoid the stop it starts at.` |
+| 400 | a window parameter is not ISO 8601 | `startDate=nonsense is not an ISO 8601 date-time; expected an offset form such as ...` |
+| 503 | at capacity, or the time limit was exceeded | which of the two, and to retry after `Retry-After` |
+
+The errors the framework raises - a missing or blank parameter (with its `violations`), an unknown
+path, another method, an `Accept` header without JSON, an unexpected error - are problems in
+`quarkus-http-problem`'s own wording.
+
+## OpenAPI
+
+`openapi/openapi.yaml` (and `.json`) is the OpenAPI 3.1 description, generated from the JAX-RS
+annotations by `quarkus-smallrye-openapi` and rewritten on every build — treat it as output. To
+change it, change the annotations on `RaptorResource`, not the file. It is committed so clients can
+generate against it without building the server.
+
+The live document is served at `/q/openapi`, with Swagger UI at `/q/swagger-ui` in dev mode.
 
 ## Running locally
 
