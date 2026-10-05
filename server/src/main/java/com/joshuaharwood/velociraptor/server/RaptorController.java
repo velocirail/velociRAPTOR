@@ -25,6 +25,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jspecify.annotations.Nullable;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 
@@ -156,7 +157,7 @@ public class RaptorController {
    * {@code =} prefix ({@code =GW}), and TfL's operators by their own ({@code LUL}); the deprecated dtd2gtfs feed's
    * agency_id is the ATOC code itself ({@code GW}).
    */
-  static @org.jspecify.annotations.Nullable String operatorOf(@org.jspecify.annotations.Nullable String agencyId) {
+  static @Nullable String operatorOf(@Nullable String agencyId) {
     if (agencyId == null) {
       return null;
     }
@@ -204,7 +205,7 @@ public class RaptorController {
 
   // A fixed-link leg carries no times of its own (its rail neighbours fix them), so the journey's
   // ends are read from the nearest train leg and pushed out by the link, as JourneyFactory does.
-  private static @org.jspecify.annotations.Nullable OffsetDateTime railJourneyDeparture(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
+  private static @Nullable OffsetDateTime railJourneyDeparture(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
     long linkSeconds = 0;
     for (var leg : legs) {
       switch (leg) {
@@ -217,7 +218,7 @@ public class RaptorController {
     return null;
   }
 
-  private static @org.jspecify.annotations.Nullable OffsetDateTime railJourneyArrival(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
+  private static @Nullable OffsetDateTime railJourneyArrival(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
     long linkSeconds = 0;
     for (var leg : legs.reversed()) {
       switch (leg) {
@@ -230,7 +231,7 @@ public class RaptorController {
     return null;
   }
 
-  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @org.jspecify.annotations.Nullable Duration boardingInterchange) {
+  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @Nullable Duration boardingInterchange) {
     return switch (leg) {
       case RailLeg rl -> new RailJourneyLeg.RailLeg(rl.origin().id(), rl.destination().id(),
                                                     atLondon(rl.departureTime()), atLondon(rl.arrivalTime()),
@@ -253,7 +254,7 @@ public class RaptorController {
    * {@link #toOffset}, applied at the /detail and /first-arrival boundary. Null-safe: fixed-link legs
    * carry no scheduled times. Package-private so the conversion can be unit-tested directly.
    */
-  static @org.jspecify.annotations.Nullable OffsetDateTime atLondon(@org.jspecify.annotations.Nullable LocalDateTime localDateTime) {
+  static @Nullable OffsetDateTime atLondon(@Nullable LocalDateTime localDateTime) {
     return localDateTime == null ? null : localDateTime.atZone(LONDON).toOffsetDateTime();
   }
 

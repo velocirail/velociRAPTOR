@@ -10,6 +10,7 @@ import com.joshuaharwood.velociraptor.raptor.model.StopTime;
 import com.joshuaharwood.velociraptor.raptor.result.Journey;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleJourney;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleLeg;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -25,7 +26,7 @@ class RaptorControllerMappingTest {
 
   private static final LocalDate DATE = LocalDate.of(2025, 6, 1);
 
-  private static TimetableLeg train(String agency, @org.jspecify.annotations.Nullable String uid, String from, int dep, PickupDropOffType pickup,
+  private static TimetableLeg train(String agency, @Nullable String uid, String from, int dep, PickupDropOffType pickup,
                                     String to, int arr, PickupDropOffType dropOff) {
     var stopTimes = List.of(
       new StopTime(new Stop(from), dep, dep, pickup, PickupDropOffType.NONE),
