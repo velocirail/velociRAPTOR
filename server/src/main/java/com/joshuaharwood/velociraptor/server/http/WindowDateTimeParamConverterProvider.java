@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ParamConverter;
 import jakarta.ws.rs.ext.ParamConverterProvider;
 import jakarta.ws.rs.ext.Provider;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -34,7 +35,7 @@ public class WindowDateTimeParamConverterProvider implements ParamConverterProvi
   static final ZoneId LONDON = ZoneId.of("Europe/London");
 
   @Override
-  public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
+  public <T> @Nullable ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
     if (rawType != OffsetDateTime.class) {
       return null;
     }
@@ -57,7 +58,7 @@ public class WindowDateTimeParamConverterProvider implements ParamConverterProvi
     }
 
     @Override
-    public OffsetDateTime fromString(String value) {
+    public @Nullable OffsetDateTime fromString(@Nullable String value) {
       if (value == null || value.isBlank()) {
         return null;
       }
@@ -86,7 +87,7 @@ public class WindowDateTimeParamConverterProvider implements ParamConverterProvi
     }
 
     @Override
-    public String toString(OffsetDateTime value) {
+    public @Nullable String toString(@Nullable OffsetDateTime value) {
       return value == null ? null : value.toString();
     }
   }

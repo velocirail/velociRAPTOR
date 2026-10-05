@@ -1,6 +1,8 @@
 package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.rail.RailTrip;
+import com.joshuaharwood.velociraptor.rail.StopDateTime;
+import com.joshuaharwood.velociraptor.rail.TrainTrip;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
 import com.joshuaharwood.velociraptor.raptor.model.Leg.TimetableLeg;
 import com.joshuaharwood.velociraptor.raptor.model.Leg.TransferLeg;
@@ -88,9 +90,35 @@ class RaptorControllerMappingTest {
   }
 
   @Test
+  void aDetailJourneyRunsFromItsFirstLegToItsLastIncludingLinksAtEitherEnd() {
+    // Tube 08:40-08:55 to EUS, the 09:05 train to MKC arriving 09:40, a walk 09:45-09:50 to the destination.
+    // (rail's Leg and RailJourney share their names with the raptor model's and the DTO's, so are written in full.)
+    var day = LocalDate.of(2026, 6, 3);
+    var tube = new com.joshuaharwood.velociraptor.rail.Leg.FixedLink(new Stop("VIC"), new Stop("EUS"),
+        day.atTime(8, 40), day.atTime(8, 55), 900, 0, 600, "TUBE");
+    var stops = List.of(
+        new StopDateTime(new Stop("EUS"), day.atTime(9, 5), day.atTime(9, 5), true, false,
+                         PickupDropOffType.REGULAR, PickupDropOffType.NONE),
+        new StopDateTime(new Stop("MKC"), day.atTime(9, 40), day.atTime(9, 40), false, true,
+                         PickupDropOffType.NONE, PickupDropOffType.REGULAR));
+    var train = new com.joshuaharwood.velociraptor.rail.Leg.RailLeg(new Stop("EUS"), new Stop("MKC"),
+        day.atTime(9, 5), day.atTime(9, 40), "MA0905", "MA0905", new TrainTrip("t", stops, "svc", "=LM", "MA0905"), 0, 1);
+    var walk = new com.joshuaharwood.velociraptor.rail.Leg.FixedLink(new Stop("MKC"), new Stop("XMK"),
+        day.atTime(9, 45), day.atTime(9, 50), 300, 300, 0, "WALK");
+
+    var detail = RaptorController.toRailJourney(
+        new com.joshuaharwood.velociraptor.rail.RailJourney(new Stop("VIC"), new Stop("XMK"), List.of(tube, train, walk)),
+        stop -> 0);
+
+    assertThat(detail.departureTime()).isEqualTo(OffsetDateTime.parse("2026-06-03T08:40:00+01:00"));
+    assertThat(detail.arrivalTime()).isEqualTo(OffsetDateTime.parse("2026-06-03T09:50:00+01:00"));
+    assertThat(detail.duration()).isEqualTo(Duration.ofMinutes(70));
+    assertThat(detail.changes()).isZero();
+  }
+
+  @Test
   void operatorIsTheAtocCodeWithOrWithoutTheNocPrefix() {
     assertThat(RaptorController.operatorOf("GW")).isEqualTo("GW");
     assertThat(RaptorController.operatorOf("=GW")).isEqualTo("GW");
-    assertThat(RaptorController.operatorOf(null)).isNull();
   }
 }

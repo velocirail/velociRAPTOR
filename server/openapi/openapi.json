@@ -140,28 +140,13 @@
             "type" : "string"
           },
           "departureTime" : {
-            "type" : [ "string", "null" ],
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/OffsetDateTime"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/OffsetDateTime"
           },
           "arrivalTime" : {
-            "type" : [ "string", "null" ],
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/OffsetDateTime"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/OffsetDateTime"
           },
           "duration" : {
-            "type" : [ "string", "null" ],
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Duration"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/Duration"
           },
           "changes" : {
             "type" : "integer",
@@ -230,7 +215,7 @@
             "$ref" : "#/components/schemas/PickupDropOffType"
           },
           "operator" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "duration" : {
             "$ref" : "#/components/schemas/Duration"
@@ -405,7 +390,7 @@
             "$ref" : "#/components/schemas/PickupDropOffType"
           },
           "operator" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "duration" : {
             "$ref" : "#/components/schemas/Duration"

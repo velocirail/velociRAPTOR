@@ -41,7 +41,8 @@ A leg of either kind of journey is a rail leg or a fixed link, told apart by its
 |---|---|---|
 | `origin`, `destination`, `departureTime`, `arrivalTime`, `duration` | yes | yes |
 | `boardingInterchange` | yes, `null` on the first leg | yes, `null` on the first leg |
-| `originTrainUid`, `destinationTrainUid`, `operator` | yes, `null` where the trip has none | not present |
+| `originTrainUid`, `destinationTrainUid` | yes, `null` where the trip has none | not present |
+| `operator` | yes | not present |
 | `originPickUpType`, `destinationDropOffType` | yes | not present |
 | `mode` | not present | yes, `null` where the feed gives none |
 

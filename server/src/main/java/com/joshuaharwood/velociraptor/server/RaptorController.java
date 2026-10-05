@@ -119,18 +119,17 @@ public class RaptorController {
         case Leg.TimetableLeg tl -> {
           var dep = toOffset(date, tl.stopTimes().getFirst().departureTime());
           var arr = toOffset(date, tl.stopTimes().getLast().arrivalTime());
-          String originUid = null, destUid = null, operator = null;
-          if (tl.trip() instanceof RailTrip rt) {
-            operator = operatorOf(rt.agencyId());
-            if (rt.trainUid() != null) {
-              var uids = rt.trainUid().split("_");
-              originUid = uids[0];
-              destUid = uids[uids.length - 1];
-            }
+          // Every trip the server builds is a RailTrip (railTripFactory), so a train leg always has an operator.
+          var rt = (RailTrip) tl.trip();
+          String originUid = null, destUid = null;
+          if (rt.trainUid() != null) {
+            var uids = rt.trainUid().split("_");
+            originUid = uids[0];
+            destUid = uids[uids.length - 1];
           }
           simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
                                                tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
-                                               operator, Duration.between(dep, arr), boardingInterchange));
+                                               operatorOf(rt.agencyId()), Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
           trainLegs++;
         }
@@ -157,10 +156,7 @@ public class RaptorController {
    * {@code =} prefix ({@code =GW}), and TfL's operators by their own ({@code LUL}); the deprecated dtd2gtfs feed's
    * agency_id is the ATOC code itself ({@code GW}).
    */
-  static @Nullable String operatorOf(@Nullable String agencyId) {
-    if (agencyId == null) {
-      return null;
-    }
+  static String operatorOf(String agencyId) {
     return agencyId.startsWith("=") ? agencyId.substring(1) : agencyId;
   }
 
@@ -195,40 +191,13 @@ public class RaptorController {
       Duration boardingInterchange = i == 0 ? null : Duration.ofSeconds(interchange.applyAsInt(leg.origin()));
       legs.add(toSmLeg(leg, boardingInterchange));
     }
-    var departure = railJourneyDeparture(j.legs());
-    var arrival = railJourneyArrival(j.legs());
+    // Every leg has its times, a fixed link's set from the trains around it, and every journey the rail factory
+    // returns has a train, so the journey runs from its first leg's departure to its last leg's arrival.
+    var departure = atLondon(j.legs().getFirst().departureTime());
+    var arrival = atLondon(j.legs().getLast().arrivalTime());
     var trainLegs = (int) j.legs().stream().filter(leg -> leg instanceof RailLeg).count();
-    return new RailJourney(j.origin().id(), j.destination().id(), departure, arrival,
-                           departure == null || arrival == null ? null : Duration.between(departure, arrival),
+    return new RailJourney(j.origin().id(), j.destination().id(), departure, arrival, Duration.between(departure, arrival),
                            Math.max(0, trainLegs - 1), List.copyOf(legs));
-  }
-
-  // A fixed-link leg carries no times of its own (its rail neighbours fix them), so the journey's
-  // ends are read from the nearest train leg and pushed out by the link, as JourneyFactory does.
-  private static @Nullable OffsetDateTime railJourneyDeparture(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
-    long linkSeconds = 0;
-    for (var leg : legs) {
-      switch (leg) {
-        case RailLeg rl -> {
-          return atLondon(rl.departureTime()).minusSeconds(linkSeconds);
-        }
-        case FixedLink fl -> linkSeconds += fl.durationSeconds() + fl.destinationInterchange();
-      }
-    }
-    return null;
-  }
-
-  private static @Nullable OffsetDateTime railJourneyArrival(List<com.joshuaharwood.velociraptor.rail.Leg> legs) {
-    long linkSeconds = 0;
-    for (var leg : legs.reversed()) {
-      switch (leg) {
-        case RailLeg rl -> {
-          return atLondon(rl.arrivalTime()).plusSeconds(linkSeconds);
-        }
-        case FixedLink fl -> linkSeconds += fl.durationSeconds() + fl.originInterchange();
-      }
-    }
-    return null;
   }
 
   private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @Nullable Duration boardingInterchange) {
@@ -251,11 +220,11 @@ public class RaptorController {
    * Attach the Europe/London offset to a rail-model {@link LocalDateTime} for the wire. The rail
    * module builds times as local wall-clock ({@code LocalDateTime.of(date, MIDNIGHT).plusSeconds}),
    * so {@code atZone(LONDON)} resolves the correct (DST-aware) offset - the same conversion as
-   * {@link #toOffset}, applied at the /detail and /first-arrival boundary. Null-safe: fixed-link legs
-   * carry no scheduled times. Package-private so the conversion can be unit-tested directly.
+   * {@link #toOffset}, applied at the /detail and /first-arrival boundary. Package-private so the conversion can be
+   * unit-tested directly.
    */
-  static @Nullable OffsetDateTime atLondon(@Nullable LocalDateTime localDateTime) {
-    return localDateTime == null ? null : localDateTime.atZone(LONDON).toOffsetDateTime();
+  static OffsetDateTime atLondon(LocalDateTime localDateTime) {
+    return localDateTime.atZone(LONDON).toOffsetDateTime();
   }
 
   private static RailTrainTrip toSmTrainTrip(com.joshuaharwood.velociraptor.rail.TrainTrip tt) {
