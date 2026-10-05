@@ -31,6 +31,25 @@ A search covers a single service day. Fixed-link use is governed by the
 `velociraptor.raptor.fixedlinks.*` settings documented in the [root README](../README.md): by
 default none of them applies: a journey may begin or end with a fixed link, or use two in a row.
 
+### Legs
+
+A leg of either kind of journey is a rail leg or a fixed link, told apart by its `type`: `RAIL_LEG` or
+`FIXED_LEG`. Each type carries only the fields that apply to it:
+
+| | rail leg | fixed link |
+|---|---|---|
+| `origin`, `destination`, `departureTime`, `arrivalTime`, `duration` | yes | yes |
+| `boardingInterchange` | yes, `null` on the first leg | yes, `null` on the first leg |
+| `originTrainUid`, `destinationTrainUid`, `operator` | yes, `null` where the trip has none | not present |
+| `originPickUpType`, `destinationDropOffType` | yes | not present |
+| `mode` | not present | yes, `null` where the feed gives none |
+
+A field a type does not have is left out, never sent as `null`; a field it has is always present,
+`null` where there is no value: a trip with no train UID, such as a TfL trip, is still a rail leg,
+with null UIDs. `/detail` rail legs also carry the train's `trainTrip` and the `startIndex` and `endIndex`
+of the leg within it. The OpenAPI document marks every field of every response type required, and the
+ones that may be null nullable; `OpenApiResponseSchemaTest` keeps it that way.
+
 ### Example
 
 ```

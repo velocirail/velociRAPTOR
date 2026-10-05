@@ -127,9 +127,9 @@ public class RaptorController {
               destUid = uids[uids.length - 1];
             }
           }
-          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
-                                       tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
-                                       operator, null, Duration.between(dep, arr), boardingInterchange));
+          simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
+                                               tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
+                                               operator, Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
           trainLegs++;
         }
@@ -139,8 +139,8 @@ public class RaptorController {
           var dep = i == 0 ? toOffset(date, journey.departureTime())
                            : prevArrival.plusSeconds(tl.originInterchange());
           var arr = dep.plusSeconds(tl.duration());
-          simpleLegs.add(new SimpleLeg(tl.origin().id(), tl.destination().id(), dep, arr, null, null, null, null,
-                                       null, tl.mode(), Duration.between(dep, arr), boardingInterchange));
+          simpleLegs.add(new SimpleLeg.FixedLink(tl.origin().id(), tl.destination().id(), dep, arr, tl.mode(),
+                                                 Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
         }
       }
@@ -152,8 +152,9 @@ public class RaptorController {
   }
 
   /**
-   * The operator's ATOC code. The current feed's agency_id is the code itself (e.g. {@code GW});
-   * gb-transit publishes it in National Operator Code form with an {@code =} prefix ({@code =GW}).
+   * The operator's code. gb-transit publishes a rail operator's ATOC code in National Operator Code form, with an
+   * {@code =} prefix ({@code =GW}), and TfL's operators by their own ({@code LUL}); the deprecated dtd2gtfs feed's
+   * agency_id is the ATOC code itself ({@code GW}).
    */
   static @org.jspecify.annotations.Nullable String operatorOf(@org.jspecify.annotations.Nullable String agencyId) {
     if (agencyId == null) {

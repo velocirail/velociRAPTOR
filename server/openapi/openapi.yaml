@@ -7,6 +7,43 @@ components:
       format: duration
       examples:
       - P1D
+    FixedLink:
+      required:
+      - type
+      - origin
+      - destination
+      - departureTime
+      - arrivalTime
+      - mode
+      - duration
+      - boardingInterchange
+      type: object
+      properties:
+        origin:
+          type: string
+        destination:
+          type: string
+        departureTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        arrivalTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        mode:
+          type:
+          - string
+          - "null"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        boardingInterchange:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/Duration"
+          - type: "null"
+        type:
+          type: string
+          enum:
+          - FIXED_LEG
     HttpProblem:
       description: HTTP Problem Response according to RFC9457 and RFC7807
       additionalProperties: true
@@ -95,6 +132,75 @@ components:
       - PHONE_AGENCY
       - COORDINATE_WITH_DRIVER
     RailJourney:
+      required:
+      - origin
+      - destination
+      - departureTime
+      - arrivalTime
+      - duration
+      - changes
+      - legs
+      type: object
+      properties:
+        origin:
+          type: string
+        destination:
+          type: string
+        departureTime:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/OffsetDateTime"
+          - type: "null"
+        arrivalTime:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/OffsetDateTime"
+          - type: "null"
+        duration:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/Duration"
+          - type: "null"
+        changes:
+          type: integer
+          format: int32
+        legs:
+          type: array
+          items:
+            $ref: "#/components/schemas/RailJourneyLeg"
+    RailJourneyLeg:
+      type: object
+      oneOf:
+      - $ref: "#/components/schemas/RailLeg"
+      - $ref: "#/components/schemas/FixedLink"
+      discriminator:
+        propertyName: type
+        mapping:
+          RAIL_LEG: "#/components/schemas/RailLeg"
+          FIXED_LEG: "#/components/schemas/FixedLink"
+    RailLeg:
+      required:
+      - type
+      - origin
+      - destination
+      - departureTime
+      - arrivalTime
+      - originTrainUid
+      - destinationTrainUid
+      - trainTrip
+      - startIndex
+      - endIndex
+      - originPickUpType
+      - destinationDropOffType
+      - operator
+      - duration
+      - boardingInterchange
       type: object
       properties:
         origin:
@@ -105,18 +211,135 @@ components:
           $ref: "#/components/schemas/OffsetDateTime"
         arrivalTime:
           $ref: "#/components/schemas/OffsetDateTime"
-        duration:
-          $ref: "#/components/schemas/Duration"
-        changes:
+        originTrainUid:
+          type:
+          - string
+          - "null"
+        destinationTrainUid:
+          type:
+          - string
+          - "null"
+        trainTrip:
+          $ref: "#/components/schemas/RailTrainTrip"
+        startIndex:
           type: integer
           format: int32
-        legs:
+        endIndex:
+          type: integer
+          format: int32
+        originPickUpType:
+          $ref: "#/components/schemas/PickupDropOffType"
+        destinationDropOffType:
+          $ref: "#/components/schemas/PickupDropOffType"
+        operator:
+          type:
+          - string
+          - "null"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        boardingInterchange:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/Duration"
+          - type: "null"
+        type:
+          type: string
+          enum:
+          - RAIL_LEG
+    RailStopDateTime:
+      type: object
+      required:
+      - stop
+      - departureTime
+      - arrivalTime
+      - pickUp
+      - dropOff
+      - pickUpType
+      - dropOffType
+      properties:
+        stop:
+          type: string
+        departureTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        arrivalTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        pickUp:
+          type: boolean
+        dropOff:
+          type: boolean
+        pickUpType:
+          $ref: "#/components/schemas/PickupDropOffType"
+        dropOffType:
+          $ref: "#/components/schemas/PickupDropOffType"
+    RailTrainTrip:
+      type: object
+      required:
+      - tripId
+      - stopTimes
+      - serviceId
+      - agencyId
+      - trainUid
+      properties:
+        tripId:
+          type: string
+        stopTimes:
           type: array
           items:
-            $ref: "#/components/schemas/RailJourneyLeg"
-    RailJourneyLeg:
+            $ref: "#/components/schemas/RailStopDateTime"
+        serviceId:
+          type: string
+        agencyId:
+          type: string
+        trainUid:
+          type:
+          - string
+          - "null"
+    SimpleFixedLink:
+      required:
+      - type
+      - origin
+      - destination
+      - departureTime
+      - arrivalTime
+      - mode
+      - duration
+      - boardingInterchange
       type: object
+      properties:
+        origin:
+          type: string
+        destination:
+          type: string
+        departureTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        arrivalTime:
+          $ref: "#/components/schemas/OffsetDateTime"
+        mode:
+          type:
+          - string
+          - "null"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        boardingInterchange:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/Duration"
+          - type: "null"
+        type:
+          type: string
+          enum:
+          - FIXED_LEG
     SimpleJourney:
+      required:
+      - departureTime
+      - arrivalTime
+      - duration
+      - changes
+      - legs
       type: object
       properties:
         departureTime:
@@ -134,6 +357,29 @@ components:
             $ref: "#/components/schemas/SimpleLeg"
     SimpleLeg:
       type: object
+      oneOf:
+      - $ref: "#/components/schemas/SimpleRailLeg"
+      - $ref: "#/components/schemas/SimpleFixedLink"
+      discriminator:
+        propertyName: type
+        mapping:
+          RAIL_LEG: "#/components/schemas/SimpleRailLeg"
+          FIXED_LEG: "#/components/schemas/SimpleFixedLink"
+    SimpleRailLeg:
+      required:
+      - type
+      - origin
+      - destination
+      - departureTime
+      - arrivalTime
+      - originTrainUid
+      - destinationTrainUid
+      - originPickUpType
+      - destinationDropOffType
+      - operator
+      - duration
+      - boardingInterchange
+      type: object
       properties:
         origin:
           type: string
@@ -144,21 +390,34 @@ components:
         arrivalTime:
           $ref: "#/components/schemas/OffsetDateTime"
         originTrainUid:
-          type: string
+          type:
+          - string
+          - "null"
         destinationTrainUid:
-          type: string
+          type:
+          - string
+          - "null"
         originPickUpType:
           $ref: "#/components/schemas/PickupDropOffType"
         destinationDropOffType:
           $ref: "#/components/schemas/PickupDropOffType"
         operator:
-          type: string
-        mode:
-          type: string
+          type:
+          - string
+          - "null"
         duration:
           $ref: "#/components/schemas/Duration"
         boardingInterchange:
-          $ref: "#/components/schemas/Duration"
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/Duration"
+          - type: "null"
+        type:
+          type: string
+          enum:
+          - RAIL_LEG
     Violation:
       type: object
       description: Validation constraint violation details
@@ -403,7 +662,7 @@ paths:
                 $ref: "#/components/schemas/HttpProblem"
 info:
   title: velociRAPTOR
-  version: 0.2.0-SNAPSHOT
+  version: 0.3.0-SNAPSHOT
   description: "RAPTOR journey planning over a GTFS feed. Times on the wire are ISO\
     \ 8601 with a UTC offset; the server works on the Europe/London clock, which is\
     \ the one GTFS times and service dates are expressed on."

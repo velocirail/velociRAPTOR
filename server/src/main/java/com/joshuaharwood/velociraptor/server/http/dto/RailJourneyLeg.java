@@ -4,11 +4,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.joshuaharwood.velociraptor.raptor.model.PickupDropOffType;
+import org.eclipse.microprofile.openapi.annotations.media.DiscriminatorMapping;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
 
+@Schema(oneOf = {RailJourneyLeg.RailLeg.class, RailJourneyLeg.FixedLink.class},
+        discriminatorProperty = "type",
+        discriminatorMapping = {
+            @DiscriminatorMapping(value = "RAIL_LEG", schema = RailJourneyLeg.RailLeg.class),
+            @DiscriminatorMapping(value = "FIXED_LEG", schema = RailJourneyLeg.FixedLink.class)
+        })
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", visible = true)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = RailJourneyLeg.RailLeg.class, name = "RAIL_LEG"),
@@ -28,35 +36,42 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
      */
     @Nullable Duration boardingInterchange();
 
+    @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid",
+        "destinationTrainUid", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType",
+        "operator", "duration", "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
                    OffsetDateTime departureTime,
                    OffsetDateTime arrivalTime,
-                   @Nullable String originTrainUid,
-                   @Nullable String destinationTrainUid,
+                   @Schema(nullable = true) @Nullable String originTrainUid,
+                   @Schema(nullable = true) @Nullable String destinationTrainUid,
                    RailTrainTrip trainTrip,
                    int startIndex,
                    int endIndex,
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
-                   @Nullable String operator,
+                   @Schema(nullable = true) @Nullable String operator,
                    Duration duration,
-                   @Nullable Duration boardingInterchange) implements RailJourneyLeg {
+                   @Schema(nullable = true) @Nullable Duration boardingInterchange) implements RailJourneyLeg {
         // type() is not a record component, so Jackson only writes it when told to.
         @Override
         @JsonProperty("type")
+        @Schema(enumeration = "RAIL_LEG")
         public String type() { return "RAIL_LEG"; }
     }
 
+    @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "mode", "duration",
+        "boardingInterchange"})
     record FixedLink(String origin,
                      String destination,
                      OffsetDateTime departureTime,
                      OffsetDateTime arrivalTime,
-                     @Nullable String mode,
+                     @Schema(nullable = true) @Nullable String mode,
                      Duration duration,
-                     @Nullable Duration boardingInterchange) implements RailJourneyLeg {
+                     @Schema(nullable = true) @Nullable Duration boardingInterchange) implements RailJourneyLeg {
         @Override
         @JsonProperty("type")
+        @Schema(enumeration = "FIXED_LEG")
         public String type() { return "FIXED_LEG"; }
     }
 }

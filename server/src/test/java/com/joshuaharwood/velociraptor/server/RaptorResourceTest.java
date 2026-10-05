@@ -65,8 +65,12 @@ class RaptorResourceTest {
             .body("[0].legs[0].originPickUpType", is("REGULAR"))
             .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
             .body("[0].legs[0].operator", is("SN"))
-            .body("[0].legs[0].mode", nullValue())
+            .body("[0].legs[0].type", is("RAIL_LEG"))
+            // A train has no mode: the field is not there at all. Nothing precedes the first leg, so its
+            // interchange is there, and null.
+            .body("[0].legs[0]", not(hasKey("mode")))
             .body("[0].legs[0].duration", is("PT1H"))
+            .body("[0].legs[0]", hasKey("boardingInterchange"))
             .body("[0].legs[0].boardingInterchange", nullValue())
             .body("[0].departureTime", is(TRIP_DEPARTURE))
             .body("[0].arrivalTime", is(TRIP_ARRIVAL))
@@ -266,6 +270,7 @@ class RaptorResourceTest {
             .body("[0].legs[0].type", is("RAIL_LEG"))
             .body("[0].legs[0].operator", is("SN"))
             .body("[0].legs[0].duration", is("PT1H"))
+            .body("[0].legs[0]", hasKey("boardingInterchange"))
             .body("[0].legs[0].boardingInterchange", nullValue())
             .body("[0].departureTime", is(TRIP_DEPARTURE))
             .body("[0].arrivalTime", is(TRIP_ARRIVAL))
@@ -480,13 +485,15 @@ class RaptorResourceTest {
             .body("[0].legs[0].departureTime", is(DATE + "T13:00:00+01:00"))
             .body("[0].legs[0].arrivalTime", is(DATE + "T14:00:00+01:00"))
             .body("[0].legs[0].operator", is("SN"))
+            .body("[0].legs[0]", hasKey("boardingInterchange"))
             .body("[0].legs[0].boardingInterchange", nullValue())
+            .body("[0].legs[1].type", is("FIXED_LEG"))
             .body("[0].legs[1].origin", is("VIC"))
             .body("[0].legs[1].destination", is("EUS"))
             .body("[0].legs[1].mode", is("TUBE"))
-            .body("[0].legs[1].operator", nullValue())
-            .body("[0].legs[1].originTrainUid", nullValue())
-            .body("[0].legs[1].originPickUpType", nullValue())
+            // A fixed link is not a train: it has no UIDs, operator or pickup types, rather than empty ones.
+            .body("[0].legs[1]", not(anyOf(hasKey("operator"), hasKey("originTrainUid"), hasKey("destinationTrainUid"),
+                                           hasKey("originPickUpType"), hasKey("destinationDropOffType"))))
             // Leaves VIC after its 10 minute interchange, and that interchange is reported on the leg it delays.
             .body("[0].legs[1].departureTime", is(DATE + "T14:10:00+01:00"))
             .body("[0].legs[1].arrivalTime", is(DATE + "T14:25:00+01:00"))
@@ -575,7 +582,7 @@ class RaptorResourceTest {
   @Test
   void rangeQuery_journeysMayBeginOrEndWithAFixedLinkByDefault() {
     // EUS has no trains to the south: the only way to BTN starts with the Tube. The leading and trailing rules are
-    // off by default, so it is returned, with null train UIDs on the link.
+    // off by default, so it is returned. The link is not a train, so it carries no train UIDs at all.
     given()
             .queryParam("orig", "EUS")
             .queryParam("dest", "BTN")
@@ -585,9 +592,9 @@ class RaptorResourceTest {
             .then()
             .statusCode(200)
             .body("size()", greaterThan(0))
+            .body("[0].legs[0].type", is("FIXED_LEG"))
             .body("[0].legs[0].mode", is("TUBE"))
-            .body("[0].legs[0].originTrainUid", nullValue())
-            .body("[0].legs[0].destinationTrainUid", nullValue());
+            .body("[0].legs[0]", not(anyOf(hasKey("originTrainUid"), hasKey("destinationTrainUid"))));
 
     // ASI is reached only by the walk from AFK, which ends the journey.
     given()

@@ -1,5 +1,6 @@
 package com.joshuaharwood.velociraptor.server.http.dto;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
@@ -15,11 +16,12 @@ import java.util.List;
  * @param duration      arrival minus departure, serialised as an ISO 8601 duration ({@code PT1H58M})
  * @param changes       changes of train: one fewer than the number of train legs
  */
+@Schema(requiredProperties = {"origin", "destination", "departureTime", "arrivalTime", "duration", "changes", "legs"})
 public record RailJourney(String origin,
                           String destination,
-                          @Nullable OffsetDateTime departureTime,
-                          @Nullable OffsetDateTime arrivalTime,
-                          @Nullable Duration duration,
+                          @Schema(nullable = true) @Nullable OffsetDateTime departureTime,
+                          @Schema(nullable = true) @Nullable OffsetDateTime arrivalTime,
+                          @Schema(nullable = true) @Nullable Duration duration,
                           int changes,
                           List<RailJourneyLeg> legs) {
 }
