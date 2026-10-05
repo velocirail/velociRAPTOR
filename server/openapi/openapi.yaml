@@ -124,6 +124,31 @@ components:
       format: date-time
       examples:
       - 2022-03-10T12:15:50-04:00
+    Operator:
+      required:
+      - code
+      - agencyId
+      - name
+      - url
+      - phone
+      type: object
+      properties:
+        code:
+          type: string
+        agencyId:
+          type: string
+        name:
+          type:
+          - string
+          - "null"
+        url:
+          type:
+          - string
+          - "null"
+        phone:
+          type:
+          - string
+          - "null"
     PickupDropOffType:
       type: string
       enum:
@@ -184,6 +209,9 @@ components:
       - originPickUpType
       - destinationDropOffType
       - operator
+      - transitMode
+      - originPlatform
+      - destinationPlatform
       - duration
       - boardingInterchange
       type: object
@@ -217,7 +245,17 @@ components:
         destinationDropOffType:
           $ref: "#/components/schemas/PickupDropOffType"
         operator:
-          type: string
+          $ref: "#/components/schemas/Operator"
+        transitMode:
+          $ref: "#/components/schemas/TransitMode"
+        originPlatform:
+          type:
+          - string
+          - "null"
+        destinationPlatform:
+          type:
+          - string
+          - "null"
         duration:
           $ref: "#/components/schemas/Duration"
         boardingInterchange:
@@ -241,6 +279,7 @@ components:
       - dropOff
       - pickUpType
       - dropOffType
+      - platform
       properties:
         stop:
           type: string
@@ -256,14 +295,20 @@ components:
           $ref: "#/components/schemas/PickupDropOffType"
         dropOffType:
           $ref: "#/components/schemas/PickupDropOffType"
+        platform:
+          type:
+          - string
+          - "null"
     RailTrainTrip:
       type: object
       required:
       - tripId
       - stopTimes
       - serviceId
-      - agencyId
       - trainUid
+      - retailServiceId
+      - headsign
+      - transitMode
       properties:
         tripId:
           type: string
@@ -273,12 +318,20 @@ components:
             $ref: "#/components/schemas/RailStopDateTime"
         serviceId:
           type: string
-        agencyId:
-          type: string
         trainUid:
           type:
           - string
           - "null"
+        retailServiceId:
+          type:
+          - string
+          - "null"
+        headsign:
+          type:
+          - string
+          - "null"
+        transitMode:
+          $ref: "#/components/schemas/TransitMode"
     SimpleFixedLink:
       required:
       - type
@@ -360,6 +413,11 @@ components:
       - originPickUpType
       - destinationDropOffType
       - operator
+      - transitMode
+      - retailServiceId
+      - headsign
+      - originPlatform
+      - destinationPlatform
       - duration
       - boardingInterchange
       type: object
@@ -385,7 +443,25 @@ components:
         destinationDropOffType:
           $ref: "#/components/schemas/PickupDropOffType"
         operator:
-          type: string
+          $ref: "#/components/schemas/Operator"
+        transitMode:
+          $ref: "#/components/schemas/TransitMode"
+        retailServiceId:
+          type:
+          - string
+          - "null"
+        headsign:
+          type:
+          - string
+          - "null"
+        originPlatform:
+          type:
+          - string
+          - "null"
+        destinationPlatform:
+          type:
+          - string
+          - "null"
         duration:
           $ref: "#/components/schemas/Duration"
         boardingInterchange:
@@ -399,6 +475,20 @@ components:
           type: string
           enum:
           - RAIL_LEG
+    TransitMode:
+      type: string
+      enum:
+      - TRAM
+      - SUBWAY
+      - RAIL
+      - BUS
+      - FERRY
+      - CABLE_TRAM
+      - GONDOLA
+      - FUNICULAR
+      - REPLACEMENT_BUS
+      - AIR
+      - OTHER
     Violation:
       type: object
       description: Validation constraint violation details

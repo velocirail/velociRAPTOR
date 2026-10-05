@@ -7,6 +7,9 @@ import java.util.List;
 public record TrainTrip(String tripId,
                         List<StopDateTime> stopTimes,
                         String serviceId,
-                        String agencyId,
-                        @Nullable String trainUid) {
+                        @Nullable String trainUid,
+                        @Nullable String retailServiceId,
+                        @Nullable String headsign,
+                        TransitMode mode,
+                        Operator operator) {
 }

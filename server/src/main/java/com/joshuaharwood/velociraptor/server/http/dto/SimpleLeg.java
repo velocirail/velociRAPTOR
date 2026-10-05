@@ -3,6 +3,7 @@ package com.joshuaharwood.velociraptor.server.http.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.joshuaharwood.velociraptor.rail.TransitMode;
 import com.joshuaharwood.velociraptor.raptor.model.PickupDropOffType;
 import org.eclipse.microprofile.openapi.annotations.media.DiscriminatorMapping;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -46,11 +47,18 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
      *                            TfL trip does not
      * @param destinationTrainUid the train UID at the destination, which differs from the origin's where
      *                            an association changed the headcode; {@code null} as above
-     * @param operator            the operator's code
+     * @param operator            the company running the train
+     * @param transitMode         what the trip runs as; a rail replacement bus is {@code REPLACEMENT_BUS}
+     * @param retailServiceId     the retail service ID ticketing knows the train by, e.g. {@code SN430003};
+     *                            {@code null} where the feed gives none
+     * @param headsign            where the trip is going, as a passenger reads it; {@code null} where the feed
+     *                            gives none
+     * @param originPlatform      the platform boarded at; {@code null} where the feed names none
+     * @param destinationPlatform the platform alighted at; {@code null} where the feed names none
      */
     @Schema(name = "SimpleRailLeg", requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime",
-        "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "duration",
-        "boardingInterchange"})
+        "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "transitMode",
+        "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "duration", "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
                    OffsetDateTime departureTime,
@@ -59,7 +67,12 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
                    @Schema(nullable = true) @Nullable String destinationTrainUid,
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
-                   String operator,
+                   Operator operator,
+                   TransitMode transitMode,
+                   @Schema(nullable = true) @Nullable String retailServiceId,
+                   @Schema(nullable = true) @Nullable String headsign,
+                   @Schema(nullable = true) @Nullable String originPlatform,
+                   @Schema(nullable = true) @Nullable String destinationPlatform,
                    Duration duration,
                    @Schema(nullable = true) @Nullable Duration boardingInterchange) implements SimpleLeg {
         // type() is not a record component, so Jackson only writes it when told to.

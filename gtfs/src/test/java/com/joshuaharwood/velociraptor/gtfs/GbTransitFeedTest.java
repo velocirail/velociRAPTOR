@@ -78,6 +78,18 @@ class GbTransitFeedTest {
   }
 
   @Test
+  void theHeadsignIsTheTripsOwnButDtd2gtfsHasNone() {
+    var trip = trip("WB0900_20260601_20260628");
+    trip.setTripHeadsign("London Victoria");
+    assertThat(nationalRail.feedProfile().headsign(trip)).isEqualTo("London Victoria");
+    trip.setTripHeadsign(" ");
+    assertThat(nationalRail.feedProfile().headsign(trip)).isNull();
+    // dtd2gtfs puts the train UID in trip_headsign.
+    trip.setTripHeadsign("WB0900");
+    assertThat(Dtd2GtfsProfile.INSTANCE.headsign(trip)).isNull();
+  }
+
+  @Test
   void fixedLinksAreTheRowsBetweenTwoStations() {
     // Interchange rows (a station to itself) and the split/join row (both trips set) are not links.
     assertThat(nationalRail.getAllFixedLinks())

@@ -25,7 +25,8 @@ class RailJourneyFactoryStopTypeTest {
     var trip = new RailTrip("t1",
         List.of(new StopTime(A, 1000, 1000, PickupDropOffType.REGULAR, PickupDropOffType.NONE),
                 new StopTime(R, 1600, 1600, PickupDropOffType.COORDINATE_WITH_DRIVER, PickupDropOffType.COORDINATE_WITH_DRIVER)),
-        "svc", "agency", null);
+        "svc", null, null, null, TransitMode.RAIL,
+        new Operator("XX", "XX", null, null, null), List.of());
     Map<Stop, Map<Integer, ResultConnectionIndex>> kConnections = Map.of(R, Map.of(1, new ResultConnection(trip, 0, 1)));
 
     var journey = new RailJourneyFactory(START).getResults(kConnections, R, null).getFirst();

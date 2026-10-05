@@ -1,8 +1,10 @@
 package com.joshuaharwood.velociraptor.server;
 
+import com.joshuaharwood.velociraptor.rail.Operator;
 import com.joshuaharwood.velociraptor.rail.RailTrip;
 import com.joshuaharwood.velociraptor.rail.StopDateTime;
 import com.joshuaharwood.velociraptor.rail.TrainTrip;
+import com.joshuaharwood.velociraptor.rail.TransitMode;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
 import com.joshuaharwood.velociraptor.raptor.model.Leg.TimetableLeg;
 import com.joshuaharwood.velociraptor.raptor.model.Leg.TransferLeg;
@@ -10,6 +12,8 @@ import com.joshuaharwood.velociraptor.raptor.model.PickupDropOffType;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
 import com.joshuaharwood.velociraptor.raptor.model.StopTime;
 import com.joshuaharwood.velociraptor.raptor.result.Journey;
+import com.joshuaharwood.velociraptor.server.http.dto.RailJourneyLeg;
+import com.joshuaharwood.velociraptor.server.http.dto.RailStopDateTime;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleJourney;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleLeg;
 import org.jspecify.annotations.Nullable;
@@ -27,13 +31,16 @@ import static org.assertj.core.api.Assertions.from;
 class RaptorControllerMappingTest {
 
   private static final LocalDate DATE = LocalDate.of(2025, 6, 1);
+  private static final Operator SOUTHERN =
+      new Operator("SN", "=SN", "Southern", "https://www.southernrailway.com/", "0345 127 2920");
 
   private static TimetableLeg train(String agency, @Nullable String uid, String from, int dep, PickupDropOffType pickup,
                                     String to, int arr, PickupDropOffType dropOff) {
     var stopTimes = List.of(
       new StopTime(new Stop(from), dep, dep, pickup, PickupDropOffType.NONE),
       new StopTime(new Stop(to), arr, arr, PickupDropOffType.NONE, dropOff));
-    var trip = new RailTrip("t-" + from + dep, stopTimes, "svc", agency, uid);
+    var trip = new RailTrip("t-" + from + dep, stopTimes, "svc", uid, null, null, TransitMode.RAIL,
+                            new Operator(RailTrips.operatorOf(agency), agency, null, null, null), List.of());
     return new TimetableLeg(new Stop(from), new Stop(to), stopTimes, trip);
   }
 
@@ -62,7 +69,7 @@ class RaptorControllerMappingTest {
     assertThat(simple.legs().get(0)).isInstanceOfSatisfying(SimpleLeg.RailLeg.class, leg -> assertThat(leg)
       .returns(Duration.ofMinutes(40), from(SimpleLeg.RailLeg::duration))
       .returns(null, from(SimpleLeg.RailLeg::boardingInterchange))
-      .returns("CH", from(SimpleLeg.RailLeg::operator))
+      .returns("CH", from(rail -> rail.operator().code()))
       .returns("C12345", from(SimpleLeg.RailLeg::originTrainUid))
       .returns(PickupDropOffType.COORDINATE_WITH_DRIVER, from(SimpleLeg.RailLeg::originPickUpType))
       .returns(PickupDropOffType.REGULAR, from(SimpleLeg.RailLeg::destinationDropOffType)));
@@ -74,7 +81,7 @@ class RaptorControllerMappingTest {
     assertThat(simple.legs().get(2)).isInstanceOfSatisfying(SimpleLeg.RailLeg.class, leg -> assertThat(leg)
       .returns(Duration.ofMinutes(25), from(SimpleLeg.RailLeg::duration))
       .returns(Duration.ofMinutes(10), from(SimpleLeg.RailLeg::boardingInterchange))
-      .returns("GN", from(SimpleLeg.RailLeg::operator)));
+      .returns("GN", from(rail -> rail.operator().code())));
   }
 
   @Test
@@ -86,7 +93,7 @@ class RaptorControllerMappingTest {
     assertThat(simple.legs()).singleElement().isInstanceOfSatisfying(SimpleLeg.RailLeg.class, leg -> assertThat(leg)
       .returns(null, from(SimpleLeg.RailLeg::originTrainUid))
       .returns(null, from(SimpleLeg.RailLeg::destinationTrainUid))
-      .returns("LUL", from(SimpleLeg.RailLeg::operator)));
+      .returns("LUL", from(rail -> rail.operator().code())));
   }
 
   @Test
@@ -98,11 +105,12 @@ class RaptorControllerMappingTest {
         day.atTime(8, 40), day.atTime(8, 55), 900, 0, 600, "TUBE");
     var stops = List.of(
         new StopDateTime(new Stop("EUS"), day.atTime(9, 5), day.atTime(9, 5), true, false,
-                         PickupDropOffType.REGULAR, PickupDropOffType.NONE),
+                         PickupDropOffType.REGULAR, PickupDropOffType.NONE, null),
         new StopDateTime(new Stop("MKC"), day.atTime(9, 40), day.atTime(9, 40), false, true,
-                         PickupDropOffType.NONE, PickupDropOffType.REGULAR));
+                         PickupDropOffType.NONE, PickupDropOffType.REGULAR, null));
     var train = new com.joshuaharwood.velociraptor.rail.Leg.RailLeg(new Stop("EUS"), new Stop("MKC"),
-        day.atTime(9, 5), day.atTime(9, 40), "MA0905", "MA0905", new TrainTrip("t", stops, "svc", "=LM", "MA0905"), 0, 1);
+        day.atTime(9, 5), day.atTime(9, 40), "MA0905", "MA0905", new TrainTrip("t", stops, "svc", "MA0905", null,
+        null, TransitMode.RAIL, new Operator("LM", "=LM", "West Midlands Railway", null, null)), 0, 1);
     var walk = new com.joshuaharwood.velociraptor.rail.Leg.FixedLink(new Stop("MKC"), new Stop("XMK"),
         day.atTime(9, 45), day.atTime(9, 50), 300, 300, 0, "WALK");
 
@@ -117,8 +125,59 @@ class RaptorControllerMappingTest {
   }
 
   @Test
-  void operatorIsTheAtocCodeWithOrWithoutTheNocPrefix() {
-    assertThat(RaptorController.operatorOf("GW")).isEqualTo("GW");
-    assertThat(RaptorController.operatorOf("=GW")).isEqualTo("GW");
+  void aTrainLegCarriesItsTripsHeadsignModeOperatorNameAndThePlatformsAtEitherEnd() {
+    // A replacement bus calling at three stops, boarded at the second and left at the third; the feed names a
+    // platform (here a bus stop letter) at the first two only.
+    var stopTimes = List.of(
+      new StopTime(new Stop("BTN"), 9 * 3600, 9 * 3600, PickupDropOffType.REGULAR, PickupDropOffType.NONE),
+      new StopTime(new Stop("HHE"), 9 * 3600 + 1200, 9 * 3600 + 1200, PickupDropOffType.REGULAR, PickupDropOffType.REGULAR),
+      new StopTime(new Stop("GTW"), 9 * 3600 + 2400, 9 * 3600 + 2400, PickupDropOffType.NONE, PickupDropOffType.REGULAR));
+    var platforms = java.util.Arrays.<@Nullable String>asList("5", "B", null);
+    var trip = new RailTrip("t", stopTimes, "svc", "W12345", "SN123400", "Gatwick Airport",
+                            TransitMode.REPLACEMENT_BUS, SOUTHERN, platforms);
+    var leg = new TimetableLeg(new Stop("HHE"), new Stop("GTW"), stopTimes.subList(1, 3), trip);
+
+    var simple = RaptorController.toSimpleJourney(new Journey(List.<Leg>of(leg), 9 * 3600 + 1200, 9 * 3600 + 2400), DATE,
+                                                  stop -> 0);
+
+    assertThat(simple.legs()).singleElement().isInstanceOfSatisfying(SimpleLeg.RailLeg.class, rail -> assertThat(rail)
+      .returns("SN123400", from(SimpleLeg.RailLeg::retailServiceId))
+      .returns("Gatwick Airport", from(SimpleLeg.RailLeg::headsign))
+      .returns(TransitMode.REPLACEMENT_BUS, from(SimpleLeg.RailLeg::transitMode))
+      .returns(new com.joshuaharwood.velociraptor.server.http.dto.Operator("SN", "=SN", "Southern",
+                                                                             "https://www.southernrailway.com/",
+                                                                             "0345 127 2920"),
+               from(SimpleLeg.RailLeg::operator))
+      .returns("B", from(SimpleLeg.RailLeg::originPlatform))
+      .returns(null, from(SimpleLeg.RailLeg::destinationPlatform)));
+  }
+
+  @Test
+  void aDetailLegCarriesThePlatformsAtEitherEndAndItsTripsHeadsignModeAndOperatorName() {
+    var day = LocalDate.of(2026, 6, 3);
+    var stops = List.of(
+        new StopDateTime(new Stop("BTN"), day.atTime(9, 0), day.atTime(9, 0), true, false,
+                         PickupDropOffType.REGULAR, PickupDropOffType.NONE, "5"),
+        new StopDateTime(new Stop("VIC"), day.atTime(10, 0), day.atTime(10, 0), false, true,
+                         PickupDropOffType.NONE, PickupDropOffType.REGULAR, "15"));
+    var train = new com.joshuaharwood.velociraptor.rail.Leg.RailLeg(new Stop("BTN"), new Stop("VIC"),
+        day.atTime(9, 0), day.atTime(10, 0), "W12345", "W12345",
+        new TrainTrip("t", stops, "svc", "W12345", "SN123400", "London Victoria", TransitMode.RAIL,
+                      SOUTHERN), 0, 1);
+
+    var detail = RaptorController.toRailJourney(
+        new com.joshuaharwood.velociraptor.rail.RailJourney(new Stop("BTN"), new Stop("VIC"), List.of(train)),
+        stop -> 0);
+
+    assertThat(detail.legs()).singleElement().isInstanceOfSatisfying(RailJourneyLeg.RailLeg.class, leg -> {
+      assertThat(leg.originPlatform()).isEqualTo("5");
+      assertThat(leg.destinationPlatform()).isEqualTo("15");
+      assertThat(leg.operator().name()).isEqualTo("Southern");
+      assertThat(leg.operator().phone()).isEqualTo("0345 127 2920");
+      assertThat(leg.transitMode()).isEqualTo(TransitMode.RAIL);
+      assertThat(leg.trainTrip().headsign()).isEqualTo("London Victoria");
+      assertThat(leg.trainTrip().retailServiceId()).isEqualTo("SN123400");
+      assertThat(leg.trainTrip().stopTimes()).map(RailStopDateTime::platform).containsExactly("5", "15");
+    });
   }
 }

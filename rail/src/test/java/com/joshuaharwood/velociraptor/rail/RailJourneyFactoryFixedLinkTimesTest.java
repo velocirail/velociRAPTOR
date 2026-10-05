@@ -32,7 +32,8 @@ class RailJourneyFactoryFixedLinkTimesTest {
   private static RailTrip trip(String id, Stop from, int dep, Stop to, int arr) {
     return new RailTrip(id,
         List.of(new StopTime(from, dep, dep, true, false), new StopTime(to, arr, arr, false, true)),
-        "svc", "agency", null);
+        "svc", null, null, null, TransitMode.RAIL,
+        new Operator("XX", "XX", null, null, null), List.of());
   }
 
   private static LocalDateTime at(int seconds) {

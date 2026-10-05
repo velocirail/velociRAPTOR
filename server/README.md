@@ -42,14 +42,24 @@ A leg of either kind of journey is a rail leg or a fixed link, told apart by its
 | `origin`, `destination`, `departureTime`, `arrivalTime`, `duration` | yes | yes |
 | `boardingInterchange` | yes, `null` on the first leg | yes, `null` on the first leg |
 | `originTrainUid`, `destinationTrainUid` | yes, `null` where the trip has none | not present |
-| `operator` | yes | not present |
+| `operator` | yes: `code`, the feed's `agencyId` (`=SN` in a gb-transit feed), and `name`, `url` and `phone`, each `null` where the feed gives none | not present |
+| `transitMode` | yes | not present |
+| `originPlatform`, `destinationPlatform` | yes, `null` where the feed names none | not present |
+| `retailServiceId`, `headsign` | `/` only, `null` where the feed gives none | not present |
 | `originPickUpType`, `destinationDropOffType` | yes | not present |
 | `mode` | not present | yes, `null` where the feed gives none |
 
 A field a type does not have is left out, never sent as `null`; a field it has is always present,
 `null` where there is no value: a trip with no train UID, such as a TfL trip, is still a rail leg,
 with null UIDs. `/detail` rail legs also carry the train's `trainTrip` and the `startIndex` and `endIndex`
-of the leg within it. The OpenAPI document marks every field of every response type required, and the
+of the leg within it; the trip has the `retailServiceId`, `headsign` and `transitMode`, and each of its calls
+its `platform`.
+
+`retailServiceId` is the trip's `trip_short_name`, the ID National Rail's retail systems know the train by
+(`SN430003`). `transitMode` is the trip's GTFS `route_type`: `RAIL` for a train, and `REPLACEMENT_BUS` for a bus standing in
+for one, so a passenger can be told. A platform is the `platform_code` of the boarding point a gb-transit feed
+calls at (`9100BRGHTN5` is Brighton platform 5); the deprecated dtd2gtfs feed has none, and its `trip_headsign`
+holds the train UID, so it has no headsign either. The OpenAPI document marks every field of every response type required, and the
 ones that may be null nullable; `OpenApiResponseSchemaTest` keeps it that way.
 
 ### Example

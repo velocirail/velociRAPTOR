@@ -18,4 +18,7 @@ public interface FeedProfile {
 
   /** The ATOC/CIF train UID of a trip, or null where the trip has none (a TfL trip, say). */
   @Nullable String trainUid(Trip trip);
+
+  /** Where the trip is going, as a passenger reads it, or null where the feed gives none. */
+  @Nullable String headsign(Trip trip);
 }
