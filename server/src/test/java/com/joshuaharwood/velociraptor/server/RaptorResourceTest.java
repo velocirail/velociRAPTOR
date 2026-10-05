@@ -9,6 +9,8 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -132,6 +134,44 @@ class RaptorResourceTest {
             .statusCode(400)
             .contentType("application/problem+json")
             .body("detail", startsWith("startDate=" + DATE + " 08:30 "));
+  }
+
+  @ParameterizedTest(name = "{0} {1} to {2}")
+  @CsvSource({
+    "/,       T09:30:00+01:00, T09:30:00+01:00",
+    "/,       T09:30:00+01:00, T08:30:00+01:00",
+    "/detail, T09:30:00+01:00, T09:30:00+01:00",
+    "/detail, T09:30:00+01:00, T08:30:00+01:00",
+    // The same instant in two offsets is still an empty window.
+    "/,       T09:30:00+01:00, T08:30:00Z"
+  })
+  void returns400WhenTheWindowDoesNotEndAfterItStarts(String path, String start, String end) {
+    given()
+            .queryParam("orig", ORIG)
+            .queryParam("dest", DEST)
+            .queryParam("startDate", DATE + start)
+            .queryParam("endDate", DATE + end)
+            .when().get(path)
+            .then()
+            .statusCode(400)
+            .contentType(startsWith("application/problem+json"))
+            .body("status", is(400))
+            .body("title", is("Bad Request"))
+            .body("detail", containsString("must be after startDate="));
+  }
+
+  @Test
+  void rangeQuery_aWindowWrittenInTwoOffsetsIsComparedAsInstants() {
+    // 08:30Z is 09:30 BST, so this window runs from 09:00 to 09:30 London time: it ends after it starts.
+    given()
+            .queryParam("orig", ORIG)
+            .queryParam("dest", DEST)
+            .queryParam("startDate", DATE + "T09:00:00+01:00")
+            .queryParam("endDate", DATE + "T08:30:00Z")
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body("size()", greaterThan(0));
   }
 
   @Test

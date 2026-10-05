@@ -576,7 +576,7 @@ format `…T09:01:00+01:00`. Indistinguishable from a wrong URL; missing params 
 Fix: take a `String` and parse (400 on failure), or register a `ParamConverter`.
 
 ### 9.7 Inverted or empty windows are accepted — LOW
-- [ ] Fixed
+- [x] Fixed — `RaptorResource.validateWindow` returns 400 unless `endDate` is after `startDate`, compared as instants. Test: `RaptorResourceTest.returns400WhenTheWindowDoesNotEndAfterItStarts`.
 
 `RaptorResource.java:48-51, 64-67`. Nothing checks `endDate > startDate`; `RangeQuery.plan`
 filters `t >= start && t < end`, so `end <= start` yields a silent `200 []`, identical to "no

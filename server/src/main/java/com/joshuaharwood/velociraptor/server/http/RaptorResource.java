@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import static com.joshuaharwood.velociraptor.server.http.WindowDateTimeParamConverterProvider.LONDON;
@@ -42,6 +43,8 @@ import static com.joshuaharwood.velociraptor.server.http.WindowDateTimeParamConv
 @Bulkhead(12)
 @Timeout(value = 5, unit = ChronoUnit.SECONDS)
 public class RaptorResource {
+    static final String PROBLEM_JSON = "application/problem+json";
+
     private final RaptorController raptorController;
 
     @Inject
@@ -71,6 +74,7 @@ public class RaptorResource {
             @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET / orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
+        validateWindow(startDate, endDate);
         validateNotVia(notVia, orig, dest);
         LocalDateTime start = railTime(startDate);
         LocalDateTime end = railTime(endDate);
@@ -103,6 +107,7 @@ public class RaptorResource {
             @Parameter(description = "Stop ids to avoid: journeys calling at or riding through any of them are excluded. Repeat the parameter for several stops.")
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /detail orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
+        validateWindow(startDate, endDate);
         validateNotVia(notVia, orig, dest);
         LocalDateTime start = railTime(startDate);
         LocalDateTime end = railTime(endDate);
@@ -157,6 +162,31 @@ public class RaptorResource {
      */
     static LocalDateTime railTime(OffsetDateTime instant) {
         return instant.atZoneSameInstant(LONDON).toLocalDateTime();
+    }
+
+    /**
+     * A window must end after it starts. One that does not holds no departures, so without this it would come back
+     * as {@code 200 []}, indistinguishable from a window in which nothing runs. Compared as instants, so the two
+     * may be written with different offsets.
+     * <p>
+     * The reason goes in an RFC 9457 problem body, so the caller is told what was wrong rather than handed an empty
+     * 400. It is built here because nothing else on this path produces problem bodies yet; a mapper that does will
+     * pass a response that already has one through unchanged.
+     */
+    static void validateWindow(OffsetDateTime startDate, OffsetDateTime endDate) {
+        if (!endDate.isAfter(startDate)) {
+            String reason = "endDate=" + endDate + " must be after startDate=" + startDate;
+            throw new BadRequestException(reason, problem(Response.Status.BAD_REQUEST, reason));
+        }
+    }
+
+    /** An RFC 9457 {@code application/problem+json} response with the status's reason phrase as its title. */
+    static Response problem(Response.Status status, String detail) {
+        var body = new LinkedHashMap<String, Object>();
+        body.put("status", status.getStatusCode());
+        body.put("title", status.getReasonPhrase());
+        body.put("detail", detail);
+        return Response.status(status).type(PROBLEM_JSON).entity(body).build();
     }
 
     private static void validateNotVia(List<String> notVia, String orig, String dest) {
