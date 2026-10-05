@@ -52,6 +52,7 @@ public class RaptorResource {
             @NotNull @QueryParam("endDate") OffsetDateTime endDate,
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET / orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
+        validateWindow(startDate, endDate);
         validateNotVia(notVia, orig, dest);
         LocalDateTime start = railTime(startDate);
         LocalDateTime end = railTime(endDate);
@@ -70,6 +71,7 @@ public class RaptorResource {
             @NotNull @QueryParam("endDate") OffsetDateTime endDate,
             @QueryParam("notVia") @DefaultValue("") List<String> notVia) {
         Log.debugf("GET /detail orig=%s dest=%s startDate=%s endDate=%s notVia=%s", orig, dest, startDate, endDate, notVia);
+        validateWindow(startDate, endDate);
         validateNotVia(notVia, orig, dest);
         LocalDateTime start = railTime(startDate);
         LocalDateTime end = railTime(endDate);
@@ -111,6 +113,17 @@ public class RaptorResource {
      */
     static LocalDateTime railTime(OffsetDateTime instant) {
         return instant.atZoneSameInstant(LONDON).toLocalDateTime();
+    }
+
+    /**
+     * A window must end after it starts. One that does not holds no departures, so without this it would come back
+     * as {@code 200 []}, indistinguishable from a window in which nothing runs. Compared as instants, so the two
+     * may be written with different offsets.
+     */
+    static void validateWindow(OffsetDateTime startDate, OffsetDateTime endDate) {
+        if (!endDate.isAfter(startDate)) {
+            throw new BadRequestException("endDate=" + endDate + " must be after startDate=" + startDate);
+        }
     }
 
     private static void validateNotVia(List<String> notVia, String orig, String dest) {
