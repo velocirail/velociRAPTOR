@@ -136,8 +136,10 @@ class RaptorResourceTest {
             .when().get(path)
             .then()
             .statusCode(400)
-            .contentType(startsWith("text/plain"))
-            .body(containsString("must be after startDate="));
+            .contentType(startsWith("application/problem+json"))
+            .body("status", is(400))
+            .body("title", is("Bad Request"))
+            .body("detail", containsString("must be after startDate="));
   }
 
   @Test
