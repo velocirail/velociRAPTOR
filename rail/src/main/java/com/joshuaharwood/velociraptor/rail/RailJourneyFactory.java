@@ -211,7 +211,8 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
             trip.retailServiceId(),
             trip.headsign(),
             trip.mode(),
-            trip.operator()
+            trip.operator(),
+            trip.route()
     );
   }
 

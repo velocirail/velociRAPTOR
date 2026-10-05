@@ -16,6 +16,7 @@ import java.util.List;
  *                        feed gives none
  * @param headsign        where the trip is going, as a passenger reads it; null where the feed gives none
  * @param operator        the company running the trip
+ * @param route           the line or brand it runs under
  * @param platforms       the platform of each call, by the same index as {@code stopTimes}, null where the feed
  *                        names none; empty where the feed names no platforms at all
  */
@@ -27,6 +28,7 @@ public record RailTrip(String id,
                        @Nullable String headsign,
                        TransitMode mode,
                        Operator operator,
+                       Route route,
                        List<@Nullable String> platforms) implements Trip {
 
   /** The platform of the call at {@code stopIndex}, or null where the feed names none. */

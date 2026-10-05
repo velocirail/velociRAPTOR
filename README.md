@@ -94,7 +94,7 @@ curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:
 
 ## HTTP API
 
-All endpoints are `GET` and return JSON arrays of journeys. Full parameter semantics are in
+All endpoints are `GET`; the journey endpoints return JSON arrays of journeys. Full parameter semantics are in
 [`server/README.md`](server/README.md); `server/openapi/openapi.yaml` is the generated OpenAPI 3.1
 description.
 
@@ -103,6 +103,8 @@ description.
 | `/` | Range query over a departure window, slim legs |
 | `/detail` | Range query, full stop lists and train UIDs |
 | `/first-arrival` | One journey per number of trains, earliest arrival departing at or after `startDate` |
+| `/stops` | Every station by the code journeys use: name, location, web page, step-free access |
+| `/info` | The server's version and the loaded feed: format, version, the dates it covers, publisher |
 
 `startDate` and `endDate` are instants — ISO 8601 with a UTC offset (`2026-06-03T12:30:00+01:00`),
 the same form the responses use. A zone-less value is accepted and read as Europe/London

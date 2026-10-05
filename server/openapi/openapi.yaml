@@ -119,6 +119,11 @@ components:
           items:
             $ref: "#/components/schemas/Violation"
           description: List of validation constraint violations that occurred
+    LocalDate:
+      type: string
+      format: date
+      examples:
+      - 2022-03-10
     OffsetDateTime:
       type: string
       format: date-time
@@ -209,6 +214,7 @@ components:
       - originPickUpType
       - destinationDropOffType
       - operator
+      - route
       - transitMode
       - originPlatform
       - destinationPlatform
@@ -246,6 +252,8 @@ components:
           $ref: "#/components/schemas/PickupDropOffType"
         operator:
           $ref: "#/components/schemas/Operator"
+        route:
+          $ref: "#/components/schemas/Route"
         transitMode:
           $ref: "#/components/schemas/TransitMode"
         originPlatform:
@@ -332,6 +340,79 @@ components:
           - "null"
         transitMode:
           $ref: "#/components/schemas/TransitMode"
+    Route:
+      type: object
+      required:
+      - id
+      - shortName
+      - longName
+      - colour
+      - textColour
+      - url
+      properties:
+        id:
+          type: string
+        shortName:
+          type:
+          - string
+          - "null"
+        longName:
+          type:
+          - string
+          - "null"
+        colour:
+          type:
+          - string
+          - "null"
+        textColour:
+          type:
+          - string
+          - "null"
+        url:
+          type:
+          - string
+          - "null"
+    ServerInfo:
+      required:
+      - version
+      - feedFormat
+      - feedVersion
+      - feedStartDate
+      - feedEndDate
+      - publisherName
+      - publisherUrl
+      type: object
+      properties:
+        version:
+          type: string
+        feedFormat:
+          type: string
+        feedVersion:
+          type:
+          - string
+          - "null"
+        feedStartDate:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/LocalDate"
+          - type: "null"
+        feedEndDate:
+          type:
+          - string
+          - "null"
+          anyOf:
+          - $ref: "#/components/schemas/LocalDate"
+          - type: "null"
+        publisherName:
+          type:
+          - string
+          - "null"
+        publisherUrl:
+          type:
+          - string
+          - "null"
     SimpleFixedLink:
       required:
       - type
@@ -413,6 +494,7 @@ components:
       - originPickUpType
       - destinationDropOffType
       - operator
+      - route
       - transitMode
       - retailServiceId
       - headsign
@@ -444,6 +526,8 @@ components:
           $ref: "#/components/schemas/PickupDropOffType"
         operator:
           $ref: "#/components/schemas/Operator"
+        route:
+          $ref: "#/components/schemas/Route"
         transitMode:
           $ref: "#/components/schemas/TransitMode"
         retailServiceId:
@@ -475,6 +559,34 @@ components:
           type: string
           enum:
           - RAIL_LEG
+    Station:
+      required:
+      - code
+      - name
+      - lat
+      - lon
+      - url
+      - stepFree
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        url:
+          type:
+          - string
+          - "null"
+        stepFree:
+          type:
+          - boolean
+          - "null"
     TransitMode:
       type: string
       enum:
@@ -516,6 +628,8 @@ components:
 tags:
 - name: Journey planning
   description: RAPTOR searches over the loaded GTFS feed.
+- name: Reference data
+  description: "The loaded feed's stations, and which feed it is."
 paths:
   /:
     get:
@@ -739,6 +853,38 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/HttpProblem"
+  /info:
+    get:
+      summary: The server and its feed
+      description: "The server's version, and which feed it is planning on: its format,\
+        \ version, the service dates it covers and who published it."
+      tags:
+      - Reference data
+      responses:
+        "200":
+          description: The server and its feed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerInfo"
+  /stops:
+    get:
+      summary: Every station
+      description: "Each station a journey can start, end or change at, by the code\
+        \ the journey endpoints take and return, with its name, location, web page\
+        \ and step-free access. The list changes only when the server loads another\
+        \ feed, so it can be cached."
+      tags:
+      - Reference data
+      responses:
+        "200":
+          description: "The stations, ordered by code."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Station"
 info:
   title: velociRAPTOR
   version: 0.3.0-SNAPSHOT

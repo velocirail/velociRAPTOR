@@ -71,6 +71,13 @@ class RaptorResourceTest {
             .body("[0].legs[0].operator.name", is("Southern"))
             .body("[0].legs[0].operator.url", is("https://www.southernrailway.com/"))
             .body("[0].legs[0].operator.phone", is("0345 127 2920"))
+            // The sample's Southern route: no short name, its long name, and white on black.
+            .body("[0].legs[0].route.id", is("SN"))
+            .body("[0].legs[0].route.shortName", nullValue())
+            .body("[0].legs[0].route.longName", is("Southern"))
+            .body("[0].legs[0].route.colour", is("000000"))
+            .body("[0].legs[0].route.textColour", is("FFFFFF"))
+            .body("[0].legs[0].route.url", nullValue())
             .body("[0].legs[0].transitMode", is("RAIL"))
             .body("[0].legs[0].retailServiceId", is("SNB09"))
             .body("[0].legs[0].headsign", is("London Victoria"))
@@ -291,6 +298,37 @@ class RaptorResourceTest {
             .body("[1].legs[1].mode", is("TUBE"))
             .body("legs.flatten().origin", not(hasItem("CLJ")))
             .body("legs.flatten().destination", not(hasItem("CLJ")));
+  }
+
+  @Test
+  void stops_listsEachStationByTheCodeJourneysUse() {
+    // Brighton is a station with platforms beneath it in the gb-transit sample; it is listed once, as the station.
+    given()
+            .when().get("/stops")
+            .then()
+            .statusCode(200)
+            .body("code", hasItems("BTN", "VIC", "ECR"))
+            .body("findAll { it.code == 'BTN' }", hasSize(1))
+            .body("find { it.code == 'BTN' }.name", is("Brighton"))
+            .body("find { it.code == 'BTN' }.lat", notNullValue())
+            .body("find { it.code == 'BTN' }.lon", notNullValue())
+            .body("find { it.code == 'BTN' }", hasKey("url"))
+            .body("find { it.code == 'BTN' }", hasKey("stepFree"))
+            .body("findAll { it.code.startsWith('9100') }", empty());
+  }
+
+  @Test
+  void info_namesTheFeedAndItsDates() {
+    given()
+            .when().get("/info")
+            .then()
+            .statusCode(200)
+            .body("feedFormat", is("gb-transit"))
+            .body("feedVersion", is("sample-1"))
+            .body("feedStartDate", is("2026-06-01"))
+            .body("feedEndDate", is("2026-06-28"))
+            .body("publisherName", is("velociRAPTOR sample feed"))
+            .body("version", notNullValue());
   }
 
   @Test

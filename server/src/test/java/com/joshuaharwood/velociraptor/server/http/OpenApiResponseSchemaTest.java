@@ -29,7 +29,8 @@ class OpenApiResponseSchemaTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"SimpleJourney", "SimpleRailLeg", "SimpleFixedLink", "RailJourney", "RailLeg", "FixedLink",
-    "RailTrainTrip", "RailStopDateTime", "Operator"})
+    "RailTrainTrip", "RailStopDateTime", "Operator",
+    "Route", "Station", "ServerInfo"})
   void everyFieldOfAResponseTypeIsRequired(String name) throws IOException {
     var schema = schemas().path(name);
     assertThat(schema.isMissingNode()).as("%s is in the document", name).isFalse();
@@ -45,8 +46,8 @@ class OpenApiResponseSchemaTest {
 
   @Test
   void aFixedLinkHasNoTrainFields() throws IOException {
-    var trainOnly = Set.of("originTrainUid", "destinationTrainUid", "operator", "transitMode", "retailServiceId",
-                           "headsign", "originPlatform", "destinationPlatform", "originPickUpType",
+    var trainOnly = Set.of("originTrainUid", "destinationTrainUid", "operator", "route", "transitMode",
+                           "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "originPickUpType",
                            "destinationDropOffType");
     for (var name : Set.of("SimpleFixedLink", "FixedLink")) {
       var properties = new TreeSet<String>();

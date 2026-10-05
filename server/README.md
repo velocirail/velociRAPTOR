@@ -4,13 +4,16 @@ Quarkus REST API exposing the RAPTOR routing engine.
 
 ## Endpoints
 
-All endpoints are `GET` and return JSON arrays of journeys.
+All endpoints are `GET`. The journey endpoints return JSON arrays of journeys; the reference endpoints describe what
+the journeys name.
 
 | Path | Returns | Required params | Optional params |
 |---|---|---|---|
 | `/` | `SimpleJourney` (slim legs) | `orig`, `dest`, `startDate`, `endDate` | `notVia` (repeatable) |
 | `/detail` | `RailJourney` (full stop lists, train UIDs) | `orig`, `dest`, `startDate`, `endDate` | `notVia` |
 | `/first-arrival` | `RailJourney` — one journey per number of trains, earliest arrival departing at or after `startDate` | `orig`, `dest`, `startDate` | `notVia` |
+| `/stops` | `Station` array — every station by the code journeys use, with its name, location, web page and step-free access (`null` where the feed does not say) | | |
+| `/info` | `ServerInfo` — the server's version, and the feed's format, version, the service dates it covers and its publisher | | |
 
 ### Parameters
 
@@ -43,6 +46,7 @@ A leg of either kind of journey is a rail leg or a fixed link, told apart by its
 | `boardingInterchange` | yes, `null` on the first leg | yes, `null` on the first leg |
 | `originTrainUid`, `destinationTrainUid` | yes, `null` where the trip has none | not present |
 | `operator` | yes: `code`, the feed's `agencyId` (`=SN` in a gb-transit feed), and `name`, `url` and `phone`, each `null` where the feed gives none | not present |
+| `route` | yes: the line or brand, its `id`, and `shortName`, `longName`, `colour` and `textColour` (six hex digits, no `#`) and `url`, each `null` where the feed gives none | not present |
 | `transitMode` | yes | not present |
 | `originPlatform`, `destinationPlatform` | yes, `null` where the feed names none | not present |
 | `retailServiceId`, `headsign` | `/` only, `null` where the feed gives none | not present |

@@ -11,5 +11,6 @@ public record TrainTrip(String tripId,
                         @Nullable String retailServiceId,
                         @Nullable String headsign,
                         TransitMode mode,
-                        Operator operator) {
+                        Operator operator,
+                        Route route) {
 }

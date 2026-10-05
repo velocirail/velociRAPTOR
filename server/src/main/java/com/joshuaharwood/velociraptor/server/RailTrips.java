@@ -4,6 +4,7 @@ import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.gtfs.FeedProfile;
 import com.joshuaharwood.velociraptor.rail.Operator;
 import com.joshuaharwood.velociraptor.rail.RailTrip;
+import com.joshuaharwood.velociraptor.rail.Route;
 import com.joshuaharwood.velociraptor.rail.TransitMode;
 import com.joshuaharwood.velociraptor.raptor.model.StopTime;
 import com.joshuaharwood.velociraptor.raptor.model.Trip;
@@ -29,8 +30,9 @@ final class RailTrips {
   // A trip's platforms are the same on every service date it runs, so each service date's copy of the trip shares
   // the one list rather than reading the trip's stop times again.
   private final ConcurrentHashMap<AgencyAndId, List<@Nullable String>> platformsByTrip = new ConcurrentHashMap<>();
-  // One operator per agency, shared by every trip it runs.
+  // One operator per agency, shared by every trip it runs; one route per route, shared likewise.
   private final ConcurrentHashMap<String, Operator> operatorsByAgency = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<AgencyAndId, Route> routesById = new ConcurrentHashMap<>();
 
   RailTrips(ExtendedGtfsRelationalDaoImpl dao) {
     this.dao = dao;
@@ -52,6 +54,7 @@ final class RailTrips {
         profile.headsign(obaTrip),
         TransitMode.fromGtfs(obaTrip.getRoute().getType()),
         operatorsByAgency.computeIfAbsent(agency.getId(), _ -> operatorOf(agency)),
+        routesById.computeIfAbsent(obaTrip.getRoute().getId(), _ -> routeOf(obaTrip.getRoute())),
         platformsByTrip.computeIfAbsent(obaTrip.getId(), _ -> platformsOf(obaTrip)));
   }
 
@@ -68,6 +71,12 @@ final class RailTrips {
   private static Operator operatorOf(Agency agency) {
     return new Operator(operatorOf(agency.getId()), agency.getId(), blankToNull(agency.getName()),
                         blankToNull(agency.getUrl()), blankToNull(agency.getPhone()));
+  }
+
+  /** The line a route describes. */
+  private static Route routeOf(org.onebusaway.gtfs.model.Route route) {
+    return new Route(route.getId().getId(), blankToNull(route.getShortName()), blankToNull(route.getLongName()),
+                     blankToNull(route.getColor()), blankToNull(route.getTextColor()), blankToNull(route.getUrl()));
   }
 
   /**

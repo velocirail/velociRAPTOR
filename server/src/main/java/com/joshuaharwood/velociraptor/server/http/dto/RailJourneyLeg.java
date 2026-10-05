@@ -39,7 +39,7 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
 
     @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid",
         "destinationTrainUid", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType",
-        "operator", "transitMode", "originPlatform", "destinationPlatform", "duration",
+        "operator", "route", "transitMode", "originPlatform", "destinationPlatform", "duration",
         "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
@@ -53,6 +53,7 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
                    Operator operator,
+                   Route route,
                    TransitMode transitMode,
                    @Schema(nullable = true) @Nullable String originPlatform,
                    @Schema(nullable = true) @Nullable String destinationPlatform,

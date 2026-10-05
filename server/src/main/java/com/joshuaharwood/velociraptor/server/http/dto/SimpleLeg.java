@@ -48,6 +48,7 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
      * @param destinationTrainUid the train UID at the destination, which differs from the origin's where
      *                            an association changed the headcode; {@code null} as above
      * @param operator            the company running the train
+     * @param route               the line or brand it runs under
      * @param transitMode         what the trip runs as; a rail replacement bus is {@code REPLACEMENT_BUS}
      * @param retailServiceId     the retail service ID ticketing knows the train by, e.g. {@code SN430003};
      *                            {@code null} where the feed gives none
@@ -57,8 +58,9 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
      * @param destinationPlatform the platform alighted at; {@code null} where the feed names none
      */
     @Schema(name = "SimpleRailLeg", requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime",
-        "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "transitMode",
-        "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "duration", "boardingInterchange"})
+        "originTrainUid", "destinationTrainUid", "originPickUpType", "destinationDropOffType", "operator", "route",
+        "transitMode", "retailServiceId", "headsign", "originPlatform", "destinationPlatform", "duration",
+        "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
                    OffsetDateTime departureTime,
@@ -68,6 +70,7 @@ public sealed interface SimpleLeg permits SimpleLeg.RailLeg, SimpleLeg.FixedLink
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
                    Operator operator,
+                   Route route,
                    TransitMode transitMode,
                    @Schema(nullable = true) @Nullable String retailServiceId,
                    @Schema(nullable = true) @Nullable String headsign,

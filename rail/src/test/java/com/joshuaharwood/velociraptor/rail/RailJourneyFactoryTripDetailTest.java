@@ -25,6 +25,8 @@ class RailJourneyFactoryTripDetailTest {
   private static final Operator SOUTHERN =
       new Operator("SN", "=SN", "Southern", "https://www.southernrailway.com/", "0345 127 2920");
 
+  private static final Route SOUTHERN_RRB = new Route("SN_RRB", null, "Southern", "8cc63e", "000000", null);
+
   private static final List<StopTime> CALLS = List.of(new StopTime(A, 1000, 1000, true, false),
                                                       new StopTime(B, 1300, 1300, true, true),
                                                       new StopTime(C, 1600, 1600, false, true));
@@ -32,7 +34,7 @@ class RailJourneyFactoryTripDetailTest {
   @Test
   void eachCallCarriesThePlatformAtTheSameIndexAndTheTripItsDetail() {
     var trip = new RailTrip("t1", CALLS, "svc", "W12345", "SN123400", "Seaford", TransitMode.REPLACEMENT_BUS,
-                            SOUTHERN, Arrays.<@Nullable String>asList("5", null, "1F"));
+                            SOUTHERN, SOUTHERN_RRB, Arrays.<@Nullable String>asList("5", null, "1F"));
 
     var leg = legOf(trip);
 
@@ -41,12 +43,14 @@ class RailJourneyFactoryTripDetailTest {
     assertThat(leg.trainTrip().headsign()).isEqualTo("Seaford");
     assertThat(leg.trainTrip().mode()).isEqualTo(TransitMode.REPLACEMENT_BUS);
     assertThat(leg.trainTrip().operator()).isEqualTo(SOUTHERN);
+    assertThat(leg.trainTrip().route()).isEqualTo(SOUTHERN_RRB);
   }
 
   @Test
   void aTripWhoseFeedNamesNoPlatformsHasNoneAtAnyCall() {
     var trip = new RailTrip("t1", CALLS, "svc", null, null, null, TransitMode.RAIL,
-        new Operator("XX", "XX", null, null, null), List.of());
+        new Operator("XX", "XX", null, null, null),
+        new Route("XX", null, null, null, null, null), List.of());
 
     assertThat(legOf(trip).trainTrip().stopTimes()).map(StopDateTime::platform).containsOnlyNulls();
   }

@@ -119,7 +119,7 @@ public class RaptorController {
           int end = start + tl.stopTimes().size() - 1;
           simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
                                                tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
-                                               toSmOperator(rt.operator()), rt.mode(),
+                                               toSmOperator(rt.operator()), toSmRoute(rt.route()), rt.mode(),
                                                rt.retailServiceId(), rt.headsign(),
                                                rt.platform(start), rt.platform(end),
                                                Duration.between(dep, arr), boardingInterchange));
@@ -192,7 +192,8 @@ public class RaptorController {
                                                     toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).pickUpType(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).dropOffType(),
-                                                    toSmOperator(rl.trainTrip().operator()), rl.trainTrip().mode(),
+                                                    toSmOperator(rl.trainTrip().operator()),
+                                                    toSmRoute(rl.trainTrip().route()), rl.trainTrip().mode(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).platform(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).platform(),
                                                     rl.duration(), boardingInterchange);
@@ -221,6 +222,10 @@ public class RaptorController {
 
   private static Operator toSmOperator(com.joshuaharwood.velociraptor.rail.Operator operator) {
     return new Operator(operator.code(), operator.agencyId(), operator.name(), operator.url(), operator.phone());
+  }
+
+  private static Route toSmRoute(com.joshuaharwood.velociraptor.rail.Route route) {
+    return new Route(route.id(), route.shortName(), route.longName(), route.colour(), route.textColour(), route.url());
   }
 
   private static RailStopDateTime toSmStopDateTime(com.joshuaharwood.velociraptor.rail.StopDateTime st) {

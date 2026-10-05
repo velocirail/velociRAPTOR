@@ -2,6 +2,7 @@ package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.rail.Operator;
 import com.joshuaharwood.velociraptor.rail.RailTrip;
+import com.joshuaharwood.velociraptor.rail.Route;
 import com.joshuaharwood.velociraptor.rail.StopDateTime;
 import com.joshuaharwood.velociraptor.rail.TrainTrip;
 import com.joshuaharwood.velociraptor.rail.TransitMode;
@@ -33,6 +34,8 @@ class RaptorControllerMappingTest {
   private static final LocalDate DATE = LocalDate.of(2025, 6, 1);
   private static final Operator SOUTHERN =
       new Operator("SN", "=SN", "Southern", "https://www.southernrailway.com/", "0345 127 2920");
+  private static final Route SOUTHERN_TRAINS = new Route("SN", null, "Southern", "8cc63e", "000000", null);
+  private static final Route SOUTHERN_RRB = new Route("SN_RRB", null, "Southern", "8cc63e", "000000", null);
 
   private static TimetableLeg train(String agency, @Nullable String uid, String from, int dep, PickupDropOffType pickup,
                                     String to, int arr, PickupDropOffType dropOff) {
@@ -40,7 +43,8 @@ class RaptorControllerMappingTest {
       new StopTime(new Stop(from), dep, dep, pickup, PickupDropOffType.NONE),
       new StopTime(new Stop(to), arr, arr, PickupDropOffType.NONE, dropOff));
     var trip = new RailTrip("t-" + from + dep, stopTimes, "svc", uid, null, null, TransitMode.RAIL,
-                            new Operator(RailTrips.operatorOf(agency), agency, null, null, null), List.of());
+                            new Operator(RailTrips.operatorOf(agency), agency, null, null, null),
+                            new Route(agency, null, null, null, null, null), List.of());
     return new TimetableLeg(new Stop(from), new Stop(to), stopTimes, trip);
   }
 
@@ -110,7 +114,8 @@ class RaptorControllerMappingTest {
                          PickupDropOffType.NONE, PickupDropOffType.REGULAR, null));
     var train = new com.joshuaharwood.velociraptor.rail.Leg.RailLeg(new Stop("EUS"), new Stop("MKC"),
         day.atTime(9, 5), day.atTime(9, 40), "MA0905", "MA0905", new TrainTrip("t", stops, "svc", "MA0905", null,
-        null, TransitMode.RAIL, new Operator("LM", "=LM", "West Midlands Railway", null, null)), 0, 1);
+        null, TransitMode.RAIL, new Operator("LM", "=LM", "West Midlands Railway", null, null),
+        new Route("LM", null, "West Midlands Railway", "ff8200", "000000", null)), 0, 1);
     var walk = new com.joshuaharwood.velociraptor.rail.Leg.FixedLink(new Stop("MKC"), new Stop("XMK"),
         day.atTime(9, 45), day.atTime(9, 50), 300, 300, 0, "WALK");
 
@@ -134,7 +139,7 @@ class RaptorControllerMappingTest {
       new StopTime(new Stop("GTW"), 9 * 3600 + 2400, 9 * 3600 + 2400, PickupDropOffType.NONE, PickupDropOffType.REGULAR));
     var platforms = java.util.Arrays.<@Nullable String>asList("5", "B", null);
     var trip = new RailTrip("t", stopTimes, "svc", "W12345", "SN123400", "Gatwick Airport",
-                            TransitMode.REPLACEMENT_BUS, SOUTHERN, platforms);
+                            TransitMode.REPLACEMENT_BUS, SOUTHERN, SOUTHERN_RRB, platforms);
     var leg = new TimetableLeg(new Stop("HHE"), new Stop("GTW"), stopTimes.subList(1, 3), trip);
 
     var simple = RaptorController.toSimpleJourney(new Journey(List.<Leg>of(leg), 9 * 3600 + 1200, 9 * 3600 + 2400), DATE,
@@ -148,6 +153,9 @@ class RaptorControllerMappingTest {
                                                                              "https://www.southernrailway.com/",
                                                                              "0345 127 2920"),
                from(SimpleLeg.RailLeg::operator))
+      .returns(new com.joshuaharwood.velociraptor.server.http.dto.Route("SN_RRB", null, "Southern", "8cc63e", "000000",
+                                                                         null),
+               from(SimpleLeg.RailLeg::route))
       .returns("B", from(SimpleLeg.RailLeg::originPlatform))
       .returns(null, from(SimpleLeg.RailLeg::destinationPlatform)));
   }
@@ -163,7 +171,7 @@ class RaptorControllerMappingTest {
     var train = new com.joshuaharwood.velociraptor.rail.Leg.RailLeg(new Stop("BTN"), new Stop("VIC"),
         day.atTime(9, 0), day.atTime(10, 0), "W12345", "W12345",
         new TrainTrip("t", stops, "svc", "W12345", "SN123400", "London Victoria", TransitMode.RAIL,
-                      SOUTHERN), 0, 1);
+                      SOUTHERN, SOUTHERN_TRAINS), 0, 1);
 
     var detail = RaptorController.toRailJourney(
         new com.joshuaharwood.velociraptor.rail.RailJourney(new Stop("BTN"), new Stop("VIC"), List.of(train)),
@@ -174,6 +182,8 @@ class RaptorControllerMappingTest {
       assertThat(leg.destinationPlatform()).isEqualTo("15");
       assertThat(leg.operator().name()).isEqualTo("Southern");
       assertThat(leg.operator().phone()).isEqualTo("0345 127 2920");
+      assertThat(leg.route().id()).isEqualTo("SN");
+      assertThat(leg.route().colour()).isEqualTo("8cc63e");
       assertThat(leg.transitMode()).isEqualTo(TransitMode.RAIL);
       assertThat(leg.trainTrip().headsign()).isEqualTo("London Victoria");
       assertThat(leg.trainTrip().retailServiceId()).isEqualTo("SN123400");
