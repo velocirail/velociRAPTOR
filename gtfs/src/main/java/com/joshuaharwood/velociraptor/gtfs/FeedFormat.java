@@ -23,7 +23,7 @@ public enum FeedFormat {
    * @deprecated gb-transit publishes the same timetable nightly; read that with {@link #GB_TRANSIT}. This format
    * will be removed in a future release.
    */
-  @Deprecated(since = "0.2.0", forRemoval = true)
+  @Deprecated(since = "0.3.0", forRemoval = true)
   DTD2GTFS("dtd2gtfs");
 
   private final String configValue;

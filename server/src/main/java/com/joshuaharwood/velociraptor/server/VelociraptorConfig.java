@@ -6,8 +6,8 @@ public final class VelociraptorConfig {
   // Required, no default: gb-transit, or the deprecated dtd2gtfs. See FeedFormat.
   public static final String GTFS_SOURCE_FORMAT = "velociraptor.gtfs.source.format";
 
-  // Where a journey may use a fixed link (walk, Tube, ferry...). All default to true: fixed links
-  // only between two trains. Env vars: VELOCIRAPTOR_RAPTOR_FIXEDLINKS_FORBIDLEADING etc.
+  // Where a journey may use a fixed link (walk, Tube, ferry...). All three default to false, as the production
+  // server behaved. Env vars: VELOCIRAPTOR_RAPTOR_FIXEDLINKS_FORBIDLEADING etc.
   public static final String FIXED_LINKS_FORBID_LEADING = "velociraptor.raptor.fixedlinks.forbidleading";
   public static final String FIXED_LINKS_FORBID_TRAILING = "velociraptor.raptor.fixedlinks.forbidtrailing";
   public static final String FIXED_LINKS_FORBID_CONTIGUOUS = "velociraptor.raptor.fixedlinks.forbidcontiguous";

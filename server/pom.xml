@@ -7,7 +7,7 @@
   <parent>
     <groupId>com.joshuaharwood</groupId>
     <artifactId>velociraptor</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
   </parent>
 
   <properties>
@@ -67,10 +67,6 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-smallrye-openapi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
     </dependency>
     <dependency>
@@ -97,10 +93,6 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-observability-devservices-lgtm</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.httpproblem</groupId>
-      <artifactId>quarkus-http-problem</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

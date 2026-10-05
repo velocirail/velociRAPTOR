@@ -30,9 +30,11 @@ public record RaptorAlgorithmConfig(boolean precompute, FixedLinkRules fixedLink
     @Singleton
     RaptorAlgorithmConfig raptorAlgorithmConfig(
         @ConfigProperty(name = ROUTING_ALGORITHM_PRECOMPUTE, defaultValue = "false") boolean precompute,
-        @ConfigProperty(name = FIXED_LINKS_FORBID_LEADING, defaultValue = "true") boolean forbidLeadingFixedLink,
-        @ConfigProperty(name = FIXED_LINKS_FORBID_TRAILING, defaultValue = "true") boolean forbidTrailingFixedLink,
-        @ConfigProperty(name = FIXED_LINKS_FORBID_CONTIGUOUS, defaultValue = "true") boolean forbidContiguousFixedLinks) {
+        // All off by default: the production server never applied them, and switching them on changes which
+        // journeys its consumers see. Turn them on per deployment once that change is agreed.
+        @ConfigProperty(name = FIXED_LINKS_FORBID_LEADING, defaultValue = "false") boolean forbidLeadingFixedLink,
+        @ConfigProperty(name = FIXED_LINKS_FORBID_TRAILING, defaultValue = "false") boolean forbidTrailingFixedLink,
+        @ConfigProperty(name = FIXED_LINKS_FORBID_CONTIGUOUS, defaultValue = "false") boolean forbidContiguousFixedLinks) {
       return new RaptorAlgorithmConfig(precompute,
           new FixedLinkRules(forbidLeadingFixedLink, forbidTrailingFixedLink, forbidContiguousFixedLinks));
     }
