@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.joshuaharwood.velociraptor.server.FeedValues.blankToNull;
+
 /**
  * Builds the {@link RailTrip}s the server plans on, one for each trip a service date runs, carrying the GTFS metadata
  * the raptor core treats as opaque. Shared by every service date's build, so a trip's platforms and who runs it are
@@ -99,9 +101,5 @@ final class RailTrips {
       platforms.add(blankToNull(((org.onebusaway.gtfs.model.Stop) stopTime.getStop()).getPlatformCode()));
     }
     return platforms.stream().allMatch(Objects::isNull) ? List.of() : Collections.unmodifiableList(platforms);
-  }
-
-  private static @Nullable String blankToNull(@Nullable String value) {
-    return value == null || value.isBlank() ? null : value;
   }
 }

@@ -18,52 +18,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.joshuaharwood.velociraptor.server.FeedValues.blankToNull;
 import static com.joshuaharwood.velociraptor.server.VelociraptorConfig.GTFS_SOURCE_FORMAT;
 
 /**
- * What the loaded feed says about itself and its stations, for the reference endpoints. Read from the feed once,
- * when first asked for: neither changes while the server runs.
+ * What the loaded feed says about itself and its stations, for the reference endpoints. Read from the feed once, as
+ * the bean is created - neither changes while the server runs - so concurrent first requests do not each scan it.
  */
 @ApplicationScoped
 public class FeedReference {
 
-  private final ExtendedGtfsRelationalDaoImpl dao;
-  private final String version;
-  private final FeedFormat format;
-  private volatile @Nullable List<Station> stations;
-  private volatile @Nullable ServerInfo info;
+  private final List<Station> stations;
+  private final ServerInfo info;
 
   @Inject
   public FeedReference(ExtendedGtfsRelationalDaoImpl dao,
                        @ConfigProperty(name = "quarkus.application.version") String version,
                        @ConfigProperty(name = GTFS_SOURCE_FORMAT) String format) {
-    this.dao = dao;
-    this.version = version;
-    this.format = FeedFormat.fromConfigValue(format);
+    this.stations = stationsOf(dao);
+    this.info = infoOf(dao, version, FeedFormat.fromConfigValue(format));
   }
 
   /** Every station, by code. */
   public List<Station> stations() {
-    var result = stations;
-    if (result == null) {
-      result = stationsOf(dao);
-      stations = result;
-    }
-    return result;
+    return stations;
   }
 
   public ServerInfo info() {
-    var result = info;
-    if (result == null) {
-      var feedInfo = dao.getAllFeedInfos().stream().findFirst().orElse(null);
-      result = feedInfo == null
-          ? new ServerInfo(version, format.configValue(), null, null, null, null, null)
-          : new ServerInfo(version, format.configValue(), blankToNull(feedInfo.getVersion()),
-                           toLocalDate(feedInfo.getStartDate()), toLocalDate(feedInfo.getEndDate()),
-                           blankToNull(feedInfo.getPublisherName()), blankToNull(feedInfo.getPublisherUrl()));
-      info = result;
-    }
-    return result;
+    return info;
+  }
+
+  private static ServerInfo infoOf(ExtendedGtfsRelationalDaoImpl dao, String version, FeedFormat format) {
+    var feedInfo = dao.getAllFeedInfos().stream().findFirst().orElse(null);
+    return feedInfo == null
+        ? new ServerInfo(version, format.configValue(), null, null, null, null, null)
+        : new ServerInfo(version, format.configValue(), blankToNull(feedInfo.getVersion()),
+                         toLocalDate(feedInfo.getStartDate()), toLocalDate(feedInfo.getEndDate()),
+                         blankToNull(feedInfo.getPublisherName()), blankToNull(feedInfo.getPublisherUrl()));
   }
 
   /**
@@ -97,9 +88,5 @@ public class FeedReference {
 
   private static @Nullable LocalDate toLocalDate(@Nullable ServiceDate date) {
     return date == null ? null : LocalDate.of(date.getYear(), date.getMonth(), date.getDay());
-  }
-
-  private static @Nullable String blankToNull(@Nullable String value) {
-    return value == null || value.isBlank() ? null : value;
   }
 }
