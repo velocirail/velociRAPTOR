@@ -11,6 +11,7 @@ import org.onebusaway.gtfs.model.AgencyAndId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -97,8 +98,10 @@ final class TripLinks {
 
     // Two trips starting where one ends is a divide, and two ending where one starts a join, so how a link reads
     // depends on the other links at the same station.
-    final Map<Trip, Map<Stop, List<Trip>>> leavingFrom = new HashMap<>();
-    final Map<Trip, Map<Stop, List<Trip>>> joiningTo = new HashMap<>();
+    // Keyed by identity: each trip is built once per service date, and a trip record's own equals and hashCode
+    // would walk every one of its stop times on each lookup.
+    final Map<Trip, Map<Stop, List<Trip>>> leavingFrom = new IdentityHashMap<>();
+    final Map<Trip, Map<Stop, List<Trip>>> joiningTo = new IdentityHashMap<>();
     for (Candidate c : candidates) {
       leavingFrom.computeIfAbsent(c.from(), _ -> new HashMap<>())
                  .computeIfAbsent(c.station(), _ -> new ArrayList<>()).add(c.to());
