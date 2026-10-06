@@ -67,7 +67,22 @@ class RaptorResourceTest {
             .body("[0].legs[0].destinationTrainUid", is(TRAIN_UID))
             .body("[0].legs[0].originPickUpType", is("REGULAR"))
             .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
-            .body("[0].legs[0].operator", is("SN"))
+            .body("[0].legs[0].operator.code", is("SN"))
+            .body("[0].legs[0].operator.name", is("Southern"))
+            .body("[0].legs[0].operator.url", is("https://www.southernrailway.com/"))
+            .body("[0].legs[0].operator.phone", is("0345 127 2920"))
+            // The sample's Southern route: no short name, its long name, and white on black.
+            .body("[0].legs[0].route.id", is("SN"))
+            .body("[0].legs[0].route.shortName", nullValue())
+            .body("[0].legs[0].route.longName", is("Southern"))
+            .body("[0].legs[0].route.colour", is("000000"))
+            .body("[0].legs[0].route.textColour", is("FFFFFF"))
+            .body("[0].legs[0].route.url", nullValue())
+            .body("[0].legs[0].transitMode", is("RAIL"))
+            .body("[0].legs[0].retailServiceId", is("SNB09"))
+            .body("[0].legs[0].headsign", is("London Victoria"))
+            .body("[0].legs[0].originPlatform", is("6"))
+            .body("[0].legs[0].destinationPlatform", is("16"))
             .body("[0].legs[0].type", is("RAIL_LEG"))
             // A train has no mode: the field is not there at all. Nothing precedes the first leg, so its
             // interchange is there, and null.
@@ -83,7 +98,7 @@ class RaptorResourceTest {
             .body("[1].legs[0].arrivalTime", is(DATE + "T10:35:00+01:00"))
             .body("[1].changes", is(0))
             .body("[2].legs", hasSize(2))
-            .body("[2].legs[0].operator", is("TL"))
+            .body("[2].legs[0].operator.code", is("TL"))
             .body("[2].legs[0].destination", is("ECR"))
             .body("[2].legs[1].origin", is("ECR"))
             .body("[2].legs[1].boardingInterchange", is("PT5M"))
@@ -286,6 +301,37 @@ class RaptorResourceTest {
   }
 
   @Test
+  void stops_listsEachStationByTheCodeJourneysUse() {
+    // Brighton is a station with platforms beneath it in the gb-transit sample; it is listed once, as the station.
+    given()
+            .when().get("/stops")
+            .then()
+            .statusCode(200)
+            .body("code", hasItems("BTN", "VIC", "ECR"))
+            .body("findAll { it.code == 'BTN' }", hasSize(1))
+            .body("find { it.code == 'BTN' }.name", is("Brighton"))
+            .body("find { it.code == 'BTN' }.lat", notNullValue())
+            .body("find { it.code == 'BTN' }.lon", notNullValue())
+            .body("find { it.code == 'BTN' }", hasKey("url"))
+            .body("find { it.code == 'BTN' }", hasKey("stepFree"))
+            .body("findAll { it.code.startsWith('9100') }", empty());
+  }
+
+  @Test
+  void info_namesTheFeedAndItsDates() {
+    given()
+            .when().get("/info")
+            .then()
+            .statusCode(200)
+            .body("feedFormat", is("gb-transit"))
+            .body("feedVersion", is("sample-1"))
+            .body("feedStartDate", is("2026-06-01"))
+            .body("feedEndDate", is("2026-06-28"))
+            .body("publisherName", is("velociRAPTOR sample feed"))
+            .body("version", notNullValue());
+  }
+
+  @Test
   void detail_returnsJourneysForKnownService() {
     given()
             .queryParam("orig", ORIG)
@@ -312,8 +358,19 @@ class RaptorResourceTest {
             .body("[0].legs[0].trainTrip.stopTimes[0].dropOffType", is("NONE"))
             .body("[0].legs[0].trainTrip.stopTimes[0].dropOff", is(false))
             .body("[0].legs[0].trainTrip.stopTimes", hasSize(5))
+            .body("[0].legs[0].trainTrip.stopTimes.platform", contains("6", "2", "4", "2", "16"))
+            .body("[0].legs[0].trainTrip.retailServiceId", is("SNB09"))
+            // The feed's agency id is the operator's, not the trip's.
+            .body("[0].legs[0].operator.agencyId", is("=SN"))
+            .body("[0].legs[0].trainTrip", not(hasKey("agencyId")))
+            .body("[0].legs[0].trainTrip.headsign", is("London Victoria"))
+            .body("[0].legs[0].trainTrip.transitMode", is("RAIL"))
+            .body("[0].legs[0].originPlatform", is("6"))
+            .body("[0].legs[0].destinationPlatform", is("16"))
+            .body("[0].legs[0].transitMode", is("RAIL"))
+            .body("[0].legs[0].operator.name", is("Southern"))
             .body("[0].legs[0].type", is("RAIL_LEG"))
-            .body("[0].legs[0].operator", is("SN"))
+            .body("[0].legs[0].operator.code", is("SN"))
             .body("[0].legs[0].duration", is("PT1H"))
             .body("[0].legs[0]", hasKey("boardingInterchange"))
             .body("[0].legs[0].boardingInterchange", nullValue())
@@ -537,7 +594,7 @@ class RaptorResourceTest {
             .body("[0].legs[0].destination", is("VIC"))
             .body("[0].legs[0].departureTime", is(DATE + "T13:00:00+01:00"))
             .body("[0].legs[0].arrivalTime", is(DATE + "T14:00:00+01:00"))
-            .body("[0].legs[0].operator", is("SN"))
+            .body("[0].legs[0].operator.code", is("SN"))
             .body("[0].legs[0]", hasKey("boardingInterchange"))
             .body("[0].legs[0].boardingInterchange", nullValue())
             .body("[0].legs[1].type", is("FIXED_LEG"))
@@ -556,7 +613,7 @@ class RaptorResourceTest {
             .body("[0].legs[2].destination", is("MKC"))
             .body("[0].legs[2].departureTime", is(DATE + "T14:50:00+01:00"))
             .body("[0].legs[2].arrivalTime", is(DATE + "T15:25:00+01:00"))
-            .body("[0].legs[2].operator", is("LM"))
+            .body("[0].legs[2].operator.code", is("LM"))
             .body("[0].legs[2].originTrainUid", is("MA1450"))
             .body("[0].legs[2].boardingInterchange", is("PT10M"))
             .body("[0].departureTime", is(DATE + "T13:00:00+01:00"))
@@ -585,7 +642,7 @@ class RaptorResourceTest {
             .body("[0].legs[1].duration", is("PT15M"))
             .body("[0].legs[1].boardingInterchange", is("PT10M"))
             .body("[0].legs[2].type", is("RAIL_LEG"))
-            .body("[0].legs[2].operator", is("LM"))
+            .body("[0].legs[2].operator.code", is("LM"))
             .body("[0].legs[2].boardingInterchange", is("PT10M"))
             .body("[0].changes", is(1));
   }

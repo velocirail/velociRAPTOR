@@ -95,7 +95,7 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
       switch (connection) {
         case ResultConnection(Trip trip, int startIndex, int endIndex) -> {
           // A multi-day overlay presents later service days as OffsetTrip wrappers over the base
-          // RailTrip. Unwrap to recover the RailTrip metadata (serviceId/agencyId/trainUid), but read
+          // RailTrip. Unwrap to recover the RailTrip metadata (serviceId/trainUid/operator), but read
           // times from the trip's own stopTimes() so they carry any day offset (i.e. are absolute
           // from the start date) - OffsetTrip materialises offset stop times for reconstruction.
           RailTrip railTrip = railTripOf(trip);
@@ -198,20 +198,25 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
 
   // stopTimes is passed in (rather than read from trip) so it reflects any overlay day offset.
   private TrainTrip toTrainTrip(RailTrip trip, List<StopTime> stopTimes) {
-    List<StopDateTime> railStopTimes = stopTimes.stream()
-                                         .map(this::toStopDateTime)
-                                         .toList();
+    List<StopDateTime> railStopTimes = new ArrayList<>(stopTimes.size());
+    for (int i = 0; i < stopTimes.size(); i++) {
+      railStopTimes.add(toStopDateTime(stopTimes.get(i), trip.platform(i)));
+    }
 
     return new TrainTrip(
             trip.id(),
-            railStopTimes,
+            List.copyOf(railStopTimes),
             trip.serviceId(),
-            trip.agencyId(),
-            trip.trainUid()
+            trip.trainUid(),
+            trip.retailServiceId(),
+            trip.headsign(),
+            trip.mode(),
+            trip.operator(),
+            trip.route()
     );
   }
 
-  private StopDateTime toStopDateTime(StopTime stopTime) {
+  private StopDateTime toStopDateTime(StopTime stopTime, @Nullable String platform) {
     return new StopDateTime(
             stopTime.stop(),
             toDateTime(stopTime.departureTime()),
@@ -219,6 +224,7 @@ public class RailJourneyFactory implements ResultsFactory<RailJourney> {
             stopTime.canBoard(),
             stopTime.canAlight(),
             stopTime.pickup(),
-            stopTime.dropOff());
+            stopTime.dropOff(),
+            platform);
   }
 }

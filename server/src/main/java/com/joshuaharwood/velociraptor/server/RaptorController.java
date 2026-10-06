@@ -9,8 +9,6 @@ import com.joshuaharwood.velociraptor.obabridge.RaptorAlgorithmFactory;
 import com.joshuaharwood.velociraptor.raptor.RaptorAlgorithm;
 import com.joshuaharwood.velociraptor.raptor.model.Leg;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
-import com.joshuaharwood.velociraptor.raptor.model.StopTime;
-import com.joshuaharwood.velociraptor.raptor.model.Trip;
 import com.joshuaharwood.velociraptor.raptor.query.DepartAfterQuery;
 import com.joshuaharwood.velociraptor.raptor.query.RangeQuery;
 import com.joshuaharwood.velociraptor.raptor.result.Journey;
@@ -40,7 +38,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -52,10 +49,8 @@ public class RaptorController {
   private static final ZoneId LONDON = ZoneId.of("Europe/London");
 
   private final ExtendedGtfsRelationalDaoImpl dao;
-  // Builds the RailTrip the rail result factory expects, carrying the GTFS metadata
-  // (serviceId/agencyId/trainUid) the raptor core treats as opaque. Shared by the single-day and
-  // multi-day-overlay builds so both produce the same trip type.
-  private final BiFunction<org.onebusaway.gtfs.model.Trip, List<StopTime>, Trip> railTripFactory;
+  // Builds the RailTrips the rail result factory expects, for every service date's build.
+  private final RailTrips railTrips;
   private final CalendarService calendarService;
   private final ConcurrentHashMap<ServiceDate, RaptorAlgorithm> algorithmCache = new ConcurrentHashMap<>();
   private final LongHistogram rangeQueryJourneys;
@@ -71,15 +66,7 @@ public class RaptorController {
                           @SuppressWarnings("CdiInjectionPointsInspection") OpenTelemetry openTelemetry,
                           RaptorAlgorithmConfig config) {
     this.dao = dao;
-    // The ATOC/CIF train UID (e.g. W45490) is wherever the feed's profile says: the lead of a gb-transit trip_id,
-    // or the trip_headsign of the deprecated dtd2gtfs feed. The trip_id itself is kept as id().
-    var profile = dao.feedProfile();
-    this.railTripFactory = (obaTrip, stopTimes) -> new RailTrip(
-        obaTrip.getId().getId(),
-        stopTimes,
-        obaTrip.getServiceId().getId(),
-        obaTrip.getRoute().getAgency().getId(),
-        profile.trainUid(obaTrip));
+    this.railTrips = new RailTrips(dao);
     this.calendarService = calendarService;
     this.config = config;
 
@@ -119,7 +106,7 @@ public class RaptorController {
         case Leg.TimetableLeg tl -> {
           var dep = toOffset(date, tl.stopTimes().getFirst().departureTime());
           var arr = toOffset(date, tl.stopTimes().getLast().arrivalTime());
-          // Every trip the server builds is a RailTrip (railTripFactory), so a train leg always has an operator.
+          // Every trip the server builds is a RailTrip (RailTrips), so a train leg always has an operator.
           var rt = (RailTrip) tl.trip();
           String originUid = null, destUid = null;
           if (rt.trainUid() != null) {
@@ -127,9 +114,15 @@ public class RaptorController {
             originUid = uids[0];
             destUid = uids[uids.length - 1];
           }
+          // The leg's stop times are a run of the trip's; find where it starts to read the platforms by index.
+          int start = rt.stopTimes().indexOf(tl.stopTimes().getFirst());
+          int end = start + tl.stopTimes().size() - 1;
           simpleLegs.add(new SimpleLeg.RailLeg(tl.origin().id(), tl.destination().id(), dep, arr, originUid, destUid,
                                                tl.stopTimes().getFirst().pickup(), tl.stopTimes().getLast().dropOff(),
-                                               operatorOf(rt.agencyId()), Duration.between(dep, arr), boardingInterchange));
+                                               toSmOperator(rt.operator()), toSmRoute(rt.route()), rt.mode(),
+                                               rt.retailServiceId(), rt.headsign(),
+                                               rt.platform(start), rt.platform(end),
+                                               Duration.between(dep, arr), boardingInterchange));
           prevArrival = arr;
           trainLegs++;
         }
@@ -149,15 +142,6 @@ public class RaptorController {
     var arrival = toOffset(date, journey.arrivalTime());
     return new SimpleJourney(departure, arrival, Duration.between(departure, arrival),
                              Math.max(0, trainLegs - 1), simpleLegs);
-  }
-
-  /**
-   * The operator's code. gb-transit publishes a rail operator's ATOC code in National Operator Code form, with an
-   * {@code =} prefix ({@code =GW}), and TfL's operators by their own ({@code LUL}); the deprecated dtd2gtfs feed's
-   * agency_id is the ATOC code itself ({@code GW}).
-   */
-  static String operatorOf(String agencyId) {
-    return agencyId.startsWith("=") ? agencyId.substring(1) : agencyId;
   }
 
   /**
@@ -208,7 +192,10 @@ public class RaptorController {
                                                     toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).pickUpType(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).dropOffType(),
-                                                    operatorOf(rl.trainTrip().agencyId()),
+                                                    toSmOperator(rl.trainTrip().operator()),
+                                                    toSmRoute(rl.trainTrip().route()), rl.trainTrip().mode(),
+                                                    rl.trainTrip().stopTimes().get(rl.startIndex()).platform(),
+                                                    rl.trainTrip().stopTimes().get(rl.endIndex()).platform(),
                                                     rl.duration(), boardingInterchange);
       case FixedLink fl -> new RailJourneyLeg.FixedLink(fl.origin().id(), fl.destination().id(),
                                                         atLondon(fl.departureTime()), atLondon(fl.arrivalTime()),
@@ -229,13 +216,22 @@ public class RaptorController {
 
   private static RailTrainTrip toSmTrainTrip(com.joshuaharwood.velociraptor.rail.TrainTrip tt) {
     var stopTimes = tt.stopTimes().stream().map(RaptorController::toSmStopDateTime).toList();
-    return new RailTrainTrip(tt.tripId(), stopTimes, tt.serviceId(), tt.agencyId(), tt.trainUid());
+    return new RailTrainTrip(tt.tripId(), stopTimes, tt.serviceId(), tt.trainUid(),
+                             tt.retailServiceId(), tt.headsign(), tt.mode());
+  }
+
+  private static Operator toSmOperator(com.joshuaharwood.velociraptor.rail.Operator operator) {
+    return new Operator(operator.code(), operator.agencyId(), operator.name(), operator.url(), operator.phone());
+  }
+
+  private static Route toSmRoute(com.joshuaharwood.velociraptor.rail.Route route) {
+    return new Route(route.id(), route.shortName(), route.longName(), route.colour(), route.textColour(), route.url());
   }
 
   private static RailStopDateTime toSmStopDateTime(com.joshuaharwood.velociraptor.rail.StopDateTime st) {
     return new RailStopDateTime(st.stop()
                                           .id(), atLondon(st.departureTime()), atLondon(st.arrivalTime()), st.isPickUp(), st.isDropOff(),
-                                st.pickUpType(), st.dropOffType());
+                                st.pickUpType(), st.dropOffType(), st.platform());
   }
 
   @Startup
@@ -303,7 +299,7 @@ public class RaptorController {
 
     var algorithm = algorithmCache.computeIfAbsent(sd, d -> {
       cacheMiss.set(true);
-      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, railTripFactory);
+      return RaptorAlgorithmFactory.createFromDao(dao, calendarService, d, railTrips::trip);
     });
     if (cacheMiss.get() && !precomputed) {
       cacheMisses.add(1);

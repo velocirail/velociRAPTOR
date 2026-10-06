@@ -25,7 +25,9 @@ class RailJourneyFactoryLongJourneyTest {
   private static RailTrip hop(String id, String from, int dep, String to, int arr) {
     return new RailTrip(id,
         List.of(new StopTime(new Stop(from), dep, dep, true, false), new StopTime(new Stop(to), arr, arr, false, true)),
-        "svc", "agency", null);
+        "svc", null, null, null, TransitMode.RAIL,
+        new Operator("XX", "XX", null, null, null),
+        new Route("XX", null, null, null, null, null), List.of());
   }
 
   /** A → B → C → D → E → F: the destination is reached at round 5 and nowhere earlier. */

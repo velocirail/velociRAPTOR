@@ -78,4 +78,10 @@ final class GbTransitProfile implements FeedProfile {
     var matcher = CIF_TRIP_ID.matcher(trip.getId().getId());
     return matcher.matches() ? matcher.group(1) : null;
   }
+
+  @Override
+  public @Nullable String headsign(Trip trip) {
+    String headsign = trip.getTripHeadsign();
+    return headsign == null || headsign.isBlank() ? null : headsign;
+  }
 }

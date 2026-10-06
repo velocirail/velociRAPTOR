@@ -24,4 +24,10 @@ final class Dtd2GtfsProfile implements FeedProfile {
   public @Nullable String trainUid(Trip trip) {
     return trip.getTripHeadsign();
   }
+
+  /** {@code trip_headsign} holds the train UID, so there is no headsign. */
+  @Override
+  public @Nullable String headsign(Trip trip) {
+    return null;
+  }
 }

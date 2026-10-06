@@ -3,6 +3,7 @@ package com.joshuaharwood.velociraptor.server.http.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.joshuaharwood.velociraptor.rail.TransitMode;
 import com.joshuaharwood.velociraptor.raptor.model.PickupDropOffType;
 import org.eclipse.microprofile.openapi.annotations.media.DiscriminatorMapping;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -38,7 +39,8 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
 
     @Schema(requiredProperties = {"type", "origin", "destination", "departureTime", "arrivalTime", "originTrainUid",
         "destinationTrainUid", "trainTrip", "startIndex", "endIndex", "originPickUpType", "destinationDropOffType",
-        "operator", "duration", "boardingInterchange"})
+        "operator", "route", "transitMode", "originPlatform", "destinationPlatform", "duration",
+        "boardingInterchange"})
     record RailLeg(String origin,
                    String destination,
                    OffsetDateTime departureTime,
@@ -50,7 +52,11 @@ public sealed interface RailJourneyLeg permits RailJourneyLeg.RailLeg, RailJourn
                    int endIndex,
                    PickupDropOffType originPickUpType,
                    PickupDropOffType destinationDropOffType,
-                   String operator,
+                   Operator operator,
+                   Route route,
+                   TransitMode transitMode,
+                   @Schema(nullable = true) @Nullable String originPlatform,
+                   @Schema(nullable = true) @Nullable String destinationPlatform,
                    Duration duration,
                    @Schema(nullable = true) @Nullable Duration boardingInterchange) implements RailJourneyLeg {
         // type() is not a record component, so Jackson only writes it when told to.
