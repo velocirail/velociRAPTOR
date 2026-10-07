@@ -1,5 +1,6 @@
 package com.joshuaharwood.velociraptor.server;
 
+import com.joshuaharwood.velociraptor.gtfs.TrainDetail;
 import com.joshuaharwood.velociraptor.rail.RailTrip;
 import com.joshuaharwood.velociraptor.rail.StopDateTime;
 import com.joshuaharwood.velociraptor.rail.TrainTrip;
@@ -10,7 +11,9 @@ import com.joshuaharwood.velociraptor.raptor.model.PickupDropOffType;
 import com.joshuaharwood.velociraptor.raptor.model.Stop;
 import com.joshuaharwood.velociraptor.raptor.model.StopTime;
 import com.joshuaharwood.velociraptor.raptor.result.Journey;
+import com.joshuaharwood.velociraptor.server.http.dto.RailJourneyLeg;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleJourney;
+import com.joshuaharwood.velociraptor.server.http.dto.Traction;
 import com.joshuaharwood.velociraptor.server.http.dto.SimpleLeg;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -108,12 +111,34 @@ class RaptorControllerMappingTest {
 
     var detail = RaptorController.toRailJourney(
         new com.joshuaharwood.velociraptor.rail.RailJourney(new Stop("VIC"), new Stop("XMK"), List.of(tube, train, walk)),
-        stop -> 0);
+        stop -> 0,
+        tripId -> tripId.equals("t") ? new TrainDetail("2M09", "EMU", "350", 110) : TrainDetail.NONE);
 
     assertThat(detail.departureTime()).isEqualTo(OffsetDateTime.parse("2026-06-03T08:40:00+01:00"));
     assertThat(detail.arrivalTime()).isEqualTo(OffsetDateTime.parse("2026-06-03T09:50:00+01:00"));
     assertThat(detail.duration()).isEqualTo(Duration.ofMinutes(70));
     assertThat(detail.changes()).isZero();
+    // The train's own headcode and traction reach its leg.
+    var trainTrip = ((RailJourneyLeg.RailLeg) detail.legs().get(1)).trainTrip();
+    assertThat(trainTrip.headcode()).isEqualTo("2M09");
+    assertThat(trainTrip.traction()).containsExactly(new Traction("CIF_SCHEDULE", "EMU", "350", 110));
+  }
+
+  @Test
+  void aTrainTheFeedSaysNothingMoreAboutHasNoHeadcodeAndNoTraction() {
+    var trip = new TrainTrip("tfl_VIC_N_2430", List.of(), "tfl_1", "tfl", null);
+    var wire = RaptorController.toSmTrainTrip(trip, TrainDetail.NONE);
+    assertThat(wire.headcode()).isNull();
+    assertThat(wire.traction()).isEmpty();
+  }
+
+  @Test
+  void aScheduleThatGivesSomeOfItsTractionStillHasAnEntry() {
+    // A z-train's BS record often gives a power type and nothing else; what it gives is passed on as it is.
+    var wire = RaptorController.toSmTrainTrip(new TrainTrip("t", List.of(), "svc", "=LM", "Z01401"),
+                                              new TrainDetail(null, "EMU", null, null));
+    assertThat(wire.headcode()).isNull();
+    assertThat(wire.traction()).containsExactly(new Traction("CIF_SCHEDULE", "EMU", null, null));
   }
 
   @Test

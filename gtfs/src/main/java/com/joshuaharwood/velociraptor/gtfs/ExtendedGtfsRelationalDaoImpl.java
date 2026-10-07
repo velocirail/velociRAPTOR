@@ -19,6 +19,8 @@ public class ExtendedGtfsRelationalDaoImpl extends GtfsRelationalDaoImpl {
   private volatile Map<Stop, List<FixedLink>> fixedLinksByStop = null;
   // A DAO populated by hand, as tests do, is keyed by stop_id as a dtd2gtfs feed is.
   private FeedProfile feedProfile = Dtd2GtfsProfile.INSTANCE;
+  // By trip_id. Only a gb-transit feed has any, and only one built since it began publishing them.
+  private Map<String, TrainDetail> trainDetails = Map.of();
 
   /** How this feed's stops and trips map onto the routing model. */
   public FeedProfile feedProfile() {
@@ -27,6 +29,15 @@ public class ExtendedGtfsRelationalDaoImpl extends GtfsRelationalDaoImpl {
 
   void setFeedProfile(FeedProfile feedProfile) {
     this.feedProfile = feedProfile;
+  }
+
+  /** What the feed says about a trip's train beyond its timetable; {@link TrainDetail#NONE} where it says nothing. */
+  public TrainDetail trainDetail(String tripId) {
+    return trainDetails.getOrDefault(tripId, TrainDetail.NONE);
+  }
+
+  void setTrainDetails(Map<String, TrainDetail> trainDetails) {
+    this.trainDetails = Map.copyOf(trainDetails);
   }
 
   // Pre-warms all lazy indices used by RaptorAlgorithmFactory.createFromDao so that

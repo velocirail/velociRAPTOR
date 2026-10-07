@@ -121,6 +121,7 @@ class GbTransitFeedTest {
   void theFilesRoutingDoesNotUseAreLeftUnread() {
     assertThat(nationalRail.getAllEntitiesForType(org.onebusaway.gtfs.model.StopAreaElement.class)).isEmpty();
     assertThat(nationalRail.getAllEntitiesForType(GbTransitTransfer.class)).isEmpty();
+    assertThat(nationalRail.getAllEntitiesForType(GbTransitTripDetail.class)).isEmpty();
   }
 
   @Test
@@ -139,6 +140,22 @@ class GbTransitFeedTest {
   void aFeedWithNoAttributionsHasNone() {
     // The dtd2gtfs sample has no attributions.txt, and the file is optional.
     assertThat(GtfsDeserialiser.createNewDao(DTD2GTFS, FeedFormat.DTD2GTFS).getAllAttributions()).isEmpty();
+  }
+
+  @Test
+  void aTripsHeadcodeAndTractionAreRead() {
+    // The 09:00 Southern fast, BTN -> VIC.
+    assertThat(nationalRail.trainDetail("WB0900_20260601_20260628"))
+      .isEqualTo(new TrainDetail("2B09", "EMU", "377", 100));
+  }
+
+  @Test
+  void aTripTheFeedSaysNothingMoreAboutHasNoDetail() {
+    var tfl = railAndTfl.getAllTrips().stream().filter(t -> t.getId().getId().startsWith("tfl_")).findFirst().orElseThrow();
+    assertThat(railAndTfl.trainDetail(tfl.getId().getId())).isEqualTo(TrainDetail.NONE);
+    assertThat(nationalRail.trainDetail("not a trip")).isEqualTo(TrainDetail.NONE);
+    // Nor does a dtd2gtfs feed, which has no such columns.
+    assertThat(GtfsDeserialiser.createNewDao(DTD2GTFS, FeedFormat.DTD2GTFS).trainDetail("W90900")).isEqualTo(TrainDetail.NONE);
   }
 
   @Test

@@ -305,6 +305,13 @@ class RaptorResourceTest {
             .body("[0].legs[0].originTrainUid", is(TRAIN_UID))
             .body("[0].legs[0].trainTrip.tripId", is(TRIP_ID))
             .body("[0].legs[0].trainTrip.trainUid", is(TRAIN_UID))
+            // What the schedule says about the train beyond its timetable, the traction tagged with its source.
+            .body("[0].legs[0].trainTrip.headcode", is("2B09"))
+            .body("[0].legs[0].trainTrip.traction", hasSize(1))
+            .body("[0].legs[0].trainTrip.traction[0].source", is("CIF_SCHEDULE"))
+            .body("[0].legs[0].trainTrip.traction[0].powerType", is("EMU"))
+            .body("[0].legs[0].trainTrip.traction[0].timingLoad", is("377"))
+            .body("[0].legs[0].trainTrip.traction[0].maxSpeed", is(100))
             .body("[0].legs[0].originPickUpType", is("REGULAR"))
             .body("[0].legs[0].destinationDropOffType", is("REGULAR"))
             .body("[0].legs[0].trainTrip.stopTimes[0].pickUpType", is("REGULAR"))

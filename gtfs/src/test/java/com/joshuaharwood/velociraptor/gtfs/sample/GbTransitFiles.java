@@ -200,18 +200,39 @@ final class GbTransitFiles {
     return sb.toString();
   }
 
+  /**
+   * The traction each operator's schedules plan, as gb-transit publishes it from the BS record: power type, timing
+   * load and maximum speed. Invented, like everything else here, but in the shape the CIF writes it.
+   */
+  private static final Map<String, List<Object>> TRACTION = Map.of(
+    "SN", List.of("EMU", "377", 100),
+    "TL", List.of("EMU", "700", 100),
+    "GX", List.of("EMU", "387", 110),
+    "SW", List.of("EMU", "450", 100),
+    "LM", List.of("EMU", "350", 110));
+
   private static String trips(boolean tfl) {
-    var sb = new StringBuilder("route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,wheelchair_accessible,bikes_allowed,shape_id\n");
+    var sb = new StringBuilder("route_id,service_id,trip_id,trip_headsign,trip_short_name,direction_id,"
+      + "wheelchair_accessible,bikes_allowed,headcode,power_type,timing_load,max_speed,shape_id\n");
     for (var t : SampleFeed.trips()) {
+      var traction = TRACTION.get(t.pattern().operator().code());
       row(sb, t.pattern().operator().code(), t.serviceId(), tripId(t), BY_CRS.get(t.calls().getLast().crs()).name(),
-        t.headcode(), 0, 0, 0, "");
+        t.headcode(), 0, 0, 0, signallingId(t), traction.get(0), traction.get(1), traction.get(2), "");
     }
     if (tfl) {
+      // TfL's trips come from TfL's own timetables, which have neither.
       for (var t : tflTrips()) {
-        row(sb, TFL_ROUTE, TFL_SERVICE, t.id(), t.calls().getLast().name(), "", t.northbound() ? 0 : 1, 0, 0, "");
+        row(sb, TFL_ROUTE, TFL_SERVICE, t.id(), t.calls().getLast().name(), "", t.northbound() ? 0 : 1, 0, 0,
+          "", "", "", "", "");
       }
     }
     return sb.toString();
+  }
+
+  /** A headcode in the CIF's shape: class 1 for the Gatwick Express, 2 for the rest, the pattern, and the hour. */
+  static String signallingId(Trip trip) {
+    var trainClass = trip.pattern().operator() == SampleFeed.GX ? '1' : '2';
+    return "" + trainClass + trip.pattern().code() + String.format("%02d", (trip.departure() / 3600) % 24);
   }
 
   private static String stopTimes(boolean tfl) {

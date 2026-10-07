@@ -29,7 +29,7 @@ class OpenApiResponseSchemaTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"SimpleJourney", "SimpleRailLeg", "SimpleFixedLink", "RailJourney", "RailLeg", "FixedLink",
-    "RailTrainTrip", "RailStopDateTime", "Feed", "FeedSource", "FeedInfo", "FeedAttribution"})
+    "RailTrainTrip", "RailStopDateTime", "Traction", "Feed", "FeedSource", "FeedInfo", "FeedAttribution"})
   void everyFieldOfAResponseTypeIsRequired(String name) throws IOException {
     var schema = schemas().path(name);
     assertThat(schema.isMissingNode()).as("%s is in the document", name).isFalse();

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 
 public class GtfsDeserialiser {
@@ -54,6 +55,7 @@ public class GtfsDeserialiser {
         case GB_TRANSIT -> {
           entityClasses.removeAll(GB_TRANSIT_UNUSED);
           entityClasses.add(GbTransitTransfer.class);
+          entityClasses.add(GbTransitTripDetail.class);
         }
         case DTD2GTFS -> entityClasses.add(FixedLink.class);
       }
@@ -77,6 +79,16 @@ public class GtfsDeserialiser {
       dao.clearAllEntitiesForType(GbTransitTransfer.class);
       links.forEach(dao::saveEntity);
       dao.setFeedProfile(profile);
+      var details = new HashMap<String, TrainDetail>();
+      for (GbTransitTripDetail row : dao.getAllEntitiesForType(GbTransitTripDetail.class)) {
+        var detail = row.toTrainDetail();
+        if (!detail.equals(TrainDetail.NONE)) {
+          details.put(row.getTripId(), detail);
+        }
+      }
+      dao.clearAllEntitiesForType(GbTransitTripDetail.class);
+      dao.setTrainDetails(details);
+      LOGGER.info("Read a headcode or traction for {} trips from trips.txt", details.size());
       LOGGER.info("Read {} fixed links from transfers.txt", links.size());
     }
 

@@ -1,6 +1,7 @@
 package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.TrainDetail;
 import com.joshuaharwood.velociraptor.rail.Leg.FixedLink;
 import com.joshuaharwood.velociraptor.rail.Leg.RailLeg;
 import com.joshuaharwood.velociraptor.rail.RailJourneyFactory;
@@ -41,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -184,12 +186,13 @@ public class RaptorController {
    * @param interchange the minimum interchange at a stop, in seconds - the algorithm's per-stop table
    * Package-private so the mapping can be unit-tested without standing up the Quarkus/S3 stack.
    */
-  static RailJourney toRailJourney(com.joshuaharwood.velociraptor.rail.RailJourney j, ToIntFunction<Stop> interchange) {
+  static RailJourney toRailJourney(com.joshuaharwood.velociraptor.rail.RailJourney j, ToIntFunction<Stop> interchange,
+                                   Function<String, TrainDetail> trainDetails) {
     var legs = new ArrayList<RailJourneyLeg>(j.legs().size());
     for (int i = 0; i < j.legs().size(); i++) {
       var leg = j.legs().get(i);
       Duration boardingInterchange = i == 0 ? null : Duration.ofSeconds(interchange.applyAsInt(leg.origin()));
-      legs.add(toSmLeg(leg, boardingInterchange));
+      legs.add(toSmLeg(leg, boardingInterchange, trainDetails));
     }
     // Every leg has its times, a fixed link's set from the trains around it, and every journey the rail factory
     // returns has a train, so the journey runs from its first leg's departure to its last leg's arrival.
@@ -200,12 +203,14 @@ public class RaptorController {
                            Math.max(0, trainLegs - 1), List.copyOf(legs));
   }
 
-  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @Nullable Duration boardingInterchange) {
+  private static RailJourneyLeg toSmLeg(com.joshuaharwood.velociraptor.rail.Leg leg, @Nullable Duration boardingInterchange,
+                                        Function<String, TrainDetail> trainDetails) {
     return switch (leg) {
       case RailLeg rl -> new RailJourneyLeg.RailLeg(rl.origin().id(), rl.destination().id(),
                                                     atLondon(rl.departureTime()), atLondon(rl.arrivalTime()),
                                                     rl.originTrainUid(), rl.destinationTrainUid(),
-                                                    toSmTrainTrip(rl.trainTrip()), rl.startIndex(), rl.endIndex(),
+                                                    toSmTrainTrip(rl.trainTrip(), trainDetails.apply(rl.trainTrip().tripId())),
+                                                    rl.startIndex(), rl.endIndex(),
                                                     rl.trainTrip().stopTimes().get(rl.startIndex()).pickUpType(),
                                                     rl.trainTrip().stopTimes().get(rl.endIndex()).dropOffType(),
                                                     operatorOf(rl.trainTrip().agencyId()),
@@ -227,9 +232,18 @@ public class RaptorController {
     return localDateTime.atZone(LONDON).toOffsetDateTime();
   }
 
-  private static RailTrainTrip toSmTrainTrip(com.joshuaharwood.velociraptor.rail.TrainTrip tt) {
+  /**
+   * The train trip for the wire, with what the feed says about the train beyond its timetable. Traction is a list
+   * with an entry per source so that a better source, added later, sits beside the schedule's rather than replacing
+   * it: the consumer decides which it trusts.
+   */
+  static RailTrainTrip toSmTrainTrip(com.joshuaharwood.velociraptor.rail.TrainTrip tt, TrainDetail detail) {
     var stopTimes = tt.stopTimes().stream().map(RaptorController::toSmStopDateTime).toList();
-    return new RailTrainTrip(tt.tripId(), stopTimes, tt.serviceId(), tt.agencyId(), tt.trainUid());
+    var traction = detail.hasTraction()
+                   ? List.of(new Traction(Traction.CIF_SCHEDULE, detail.powerType(), detail.timingLoad(), detail.maxSpeed()))
+                   : List.<Traction>of();
+    return new RailTrainTrip(tt.tripId(), stopTimes, tt.serviceId(), tt.agencyId(), tt.trainUid(), detail.headcode(),
+                             traction);
   }
 
   private static RailStopDateTime toSmStopDateTime(com.joshuaharwood.velociraptor.rail.StopDateTime st) {
@@ -281,7 +295,7 @@ public class RaptorController {
     var raptor = getRaptorAlgorithmByDate(date, false);
     var results = new RangeQuery<>(raptor, new RailJourneyFactory(date), config.fixedLinkRules())
         .plan(new Stop(origin), new Stop(destination), date, startTime, endTime, toStops(notVia));
-    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime)).toList();
+    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime, dao::trainDetail)).toList();
   }
 
   public List<RailJourney> firstArrivalDetail(String origin, String destination, LocalDate date, int startTime, List<String> notVia) {
@@ -289,7 +303,7 @@ public class RaptorController {
     var raptor = getRaptorAlgorithmByDate(date, false);
     var results = new DepartAfterQuery<>(raptor, new RailJourneyFactory(date), config.fixedLinkRules())
         .plan(new Stop(origin), new Stop(destination), date, startTime, toStops(notVia));
-    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime)).toList();
+    return results.stream().map(j -> toRailJourney(j, raptor::interchangeTime, dao::trainDetail)).toList();
   }
 
   private static Set<Stop> toStops(List<String> ids) {

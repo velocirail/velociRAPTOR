@@ -54,6 +54,25 @@ with null UIDs. `/detail` rail legs also carry the train's `trainTrip` and the `
 of the leg within it. The OpenAPI document marks every field of every response type required, and the
 ones that may be null nullable; `OpenApiResponseSchemaTest` keeps it that way.
 
+### Headcode and traction
+
+On `/detail` and `/first-arrival`, each rail leg's `trainTrip` also carries what the feed says about the train
+beyond its timetable:
+
+- `headcode`: the signalling ID, such as `1A23`, from the train's CIF schedule. Null for a TfL trip, or a feed built
+  before gb-transit published it.
+- `traction`: what hauls the train, as a list with one entry per source:
+
+  ```json
+  "traction": [{ "source": "CIF_SCHEDULE", "powerType": "EMU", "timingLoad": "387", "maxSpeed": 110 }]
+  ```
+
+  `CIF_SCHEDULE` is the traction the CIF schedule plans: what was timetabled, not necessarily what runs. It is a
+  list so that other sources can be added beside it later rather than replacing it. Sources can disagree, and the
+  server passes each one on as it is: deciding which to trust is up to the consumer. Empty where no source says
+  anything. `timingLoad` is read by `powerType`: a unit class for a multiple unit, a load in tonnes behind a
+  locomotive. `maxSpeed` is in mph.
+
 ### Example
 
 ```

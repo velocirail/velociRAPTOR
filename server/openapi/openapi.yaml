@@ -407,6 +407,8 @@ components:
       - serviceId
       - agencyId
       - trainUid
+      - headcode
+      - traction
       properties:
         tripId:
           type: string
@@ -422,6 +424,14 @@ components:
           type:
           - string
           - "null"
+        headcode:
+          type:
+          - string
+          - "null"
+        traction:
+          type: array
+          items:
+            $ref: "#/components/schemas/Traction"
     SimpleFixedLink:
       required:
       - type
@@ -542,6 +552,31 @@ components:
           type: string
           enum:
           - RAIL_LEG
+    Traction:
+      type: object
+      required:
+      - source
+      - powerType
+      - timingLoad
+      - maxSpeed
+      properties:
+        source:
+          type: string
+          enum:
+          - CIF_SCHEDULE
+        powerType:
+          type:
+          - string
+          - "null"
+        timingLoad:
+          type:
+          - string
+          - "null"
+        maxSpeed:
+          type:
+          - integer
+          - "null"
+          format: int32
     Violation:
       type: object
       description: Validation constraint violation details
