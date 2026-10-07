@@ -75,6 +75,16 @@ final class GbTransitFiles {
   private static final Map<String, Station> BY_CRS = STATIONS.stream()
     .collect(Collectors.toMap(Station::crs, Function.identity()));
 
+  /**
+   * As gb-transit credits its sources: the timetable, and an enricher's stops, each with the licence it is published
+   * under in a column GTFS does not have.
+   */
+  private static final String ATTRIBUTIONS = """
+    organization_name,is_producer,is_operator,is_authority,attribution_url,attribution_licence
+    Rail Delivery Group,0,0,1,https://raildata.org.uk/,Rail Settlement Plan data licence
+    Department for Transport,0,0,1,https://beta-naptan.dft.gov.uk/,Open Government Licence v3.0
+    """;
+
   private GbTransitFiles() {}
 
   static Map<String, String> files(Shape shape) {
@@ -82,6 +92,7 @@ final class GbTransitFiles {
     var files = new LinkedHashMap<String, String>();
     files.put("agency.txt", agency(tfl));
     files.put("areas.txt", "area_id,area_name\n1072,London Terminals\n");
+    files.put("attributions.txt", ATTRIBUTIONS);
     files.put("calendar.txt", SampleFeed.calendar() + (tfl ? tflCalendar() : ""));
     files.put("calendar_dates.txt", SampleFeed.calendarDates());
     files.put("feed_info.txt", SampleFeed.feedInfo());

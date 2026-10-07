@@ -7,6 +7,137 @@
         "format" : "duration",
         "examples" : [ "P1D" ]
       },
+      "Feed" : {
+        "required" : [ "id", "format", "loadedAt", "source", "feedInfo", "attributions" ],
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "format" : {
+            "type" : "string"
+          },
+          "loadedAt" : {
+            "$ref" : "#/components/schemas/OffsetDateTime"
+          },
+          "source" : {
+            "$ref" : "#/components/schemas/FeedSource"
+          },
+          "feedInfo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FeedInfo"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "attributions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FeedAttribution"
+            }
+          }
+        }
+      },
+      "FeedAttribution" : {
+        "type" : "object",
+        "required" : [ "organizationName", "producer", "operator", "authority", "url", "email", "phone", "licence" ],
+        "properties" : {
+          "organizationName" : {
+            "type" : "string"
+          },
+          "producer" : {
+            "type" : "boolean"
+          },
+          "operator" : {
+            "type" : "boolean"
+          },
+          "authority" : {
+            "type" : "boolean"
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "phone" : {
+            "type" : [ "string", "null" ]
+          },
+          "licence" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "FeedInfo" : {
+        "type" : "object",
+        "required" : [ "publisherName", "publisherUrl", "lang", "startDate", "endDate", "version", "contactEmail", "contactUrl" ],
+        "properties" : {
+          "publisherName" : {
+            "type" : "string"
+          },
+          "publisherUrl" : {
+            "type" : "string"
+          },
+          "lang" : {
+            "type" : "string"
+          },
+          "startDate" : {
+            "type" : [ "string", "null" ],
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "endDate" : {
+            "type" : [ "string", "null" ],
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactEmail" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactUrl" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "FeedSource" : {
+        "type" : "object",
+        "required" : [ "location", "sha256", "sizeBytes", "s3VersionId", "s3ETag", "s3LastModified" ],
+        "properties" : {
+          "location" : {
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "s3VersionId" : {
+            "type" : [ "string", "null" ]
+          },
+          "s3ETag" : {
+            "type" : [ "string", "null" ]
+          },
+          "s3LastModified" : {
+            "type" : [ "string", "null" ],
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OffsetDateTime"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "FixedLink" : {
         "required" : [ "type", "origin", "destination", "departureTime", "arrivalTime", "mode", "duration", "boardingInterchange" ],
         "type" : "object",
@@ -119,6 +250,11 @@
             "description" : "List of validation constraint violations that occurred"
           }
         }
+      },
+      "LocalDate" : {
+        "type" : "string",
+        "format" : "date",
+        "examples" : [ "2022-03-10" ]
       },
       "OffsetDateTime" : {
         "type" : "string",
@@ -433,6 +569,9 @@
     }
   },
   "tags" : [ {
+    "name" : "Feed",
+    "description" : "The GTFS feed the server answers from, and where it came from."
+  }, {
     "name" : "Journey planning",
     "description" : "RAPTOR searches over the loaded GTFS feed."
   } ],
@@ -606,6 +745,25 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HttpProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feed" : {
+      "get" : {
+        "summary" : "The loaded feed",
+        "description" : "Where the feed was read from and its digest, its `feed_info.txt`, and the sources its `attributions.txt` credits. Every response carries the feed's `id` in the `X-Feed-Id` header, so an answer can be matched to the feed that produced it.",
+        "tags" : [ "Feed" ],
+        "responses" : {
+          "200" : {
+            "description" : "The loaded feed.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Feed"
                 }
               }
             }

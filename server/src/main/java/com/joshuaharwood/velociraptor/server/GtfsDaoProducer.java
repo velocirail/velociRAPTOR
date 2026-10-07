@@ -2,6 +2,7 @@ package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
+import com.joshuaharwood.velociraptor.server.http.dto.Feed;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.Meter;
@@ -12,6 +13,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.time.Instant;
 
 import static com.joshuaharwood.velociraptor.server.VelociraptorConfig.GTFS_SOURCE_FORMAT;
 import static com.joshuaharwood.velociraptor.server.VelociraptorConfig.GTFS_SOURCE_PATH;
@@ -25,6 +28,7 @@ public class GtfsDaoProducer {
   private final PathGtfsLoader pathLoader;
   private final DoubleHistogram loadDuration;
   private ExtendedGtfsRelationalDaoImpl dao;
+  private Feed feed;
 
   @Inject
   public GtfsDaoProducer(@ConfigProperty(name = GTFS_SOURCE_PATH) String gtfsSourcePath,
@@ -48,15 +52,23 @@ public class GtfsDaoProducer {
     GtfsLoader loader = gtfsSourcePath.startsWith("s3://") ? s3Loader : pathLoader;
     Log.infof("Building GTFS cache from %s (%s feed)...", gtfsSourcePath.startsWith("s3://") ? "S3" : "path", feedFormat);
     long start = System.nanoTime();
-    dao = loader.load(feedFormat);
+    LoadedFeed loaded = loader.load(feedFormat);
+    dao = loaded.dao();
     dao.initialise();
     loadDuration.record((System.nanoTime() - start) / 1e9);
-    Log.info("GTFS cache built.");
+    feed = FeedDescription.describe(feedFormat, loaded.source(), dao, Instant.now());
+    Log.infof("GTFS cache built from feed %s (sha256 %s, version %s).", feed.id(), feed.source().sha256(),
+              feed.feedInfo() == null ? "not given" : feed.feedInfo().version());
   }
 
   @Produces
   @ApplicationScoped
   public ExtendedGtfsRelationalDaoImpl produce() {
     return dao;
+  }
+
+  /** The loaded feed and where it came from. */
+  public Feed feed() {
+    return feed;
   }
 }

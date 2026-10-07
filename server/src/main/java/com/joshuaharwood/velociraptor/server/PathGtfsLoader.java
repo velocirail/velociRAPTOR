@@ -1,7 +1,6 @@
 package com.joshuaharwood.velociraptor.server;
 
 import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
-import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
 import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -21,7 +20,8 @@ public class PathGtfsLoader implements GtfsLoader {
   }
 
   @Override
-  public ExtendedGtfsRelationalDaoImpl load(FeedFormat format) {
-    return GtfsDeserialiser.createNewDao(new File(path), format);
+  public LoadedFeed load(FeedFormat format) {
+    File file = new File(path);
+    return new LoadedFeed(GtfsDeserialiser.createNewDao(file, format), FeedSource.ofPath(file.toPath()));
   }
 }

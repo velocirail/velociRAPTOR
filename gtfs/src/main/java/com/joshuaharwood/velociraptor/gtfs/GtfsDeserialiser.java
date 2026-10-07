@@ -47,6 +47,8 @@ public class GtfsDeserialiser {
       gtfsReader.setDefaultAgencyId(DEFAULT_AGENCY);
 
       var entityClasses = gtfsReader.getEntityClasses();
+      // Both formats: where the data came from is worth keeping whichever shape the rest of the feed is in.
+      entityClasses.add(FeedAttribution.class);
 
       switch (format) {
         case GB_TRANSIT -> {

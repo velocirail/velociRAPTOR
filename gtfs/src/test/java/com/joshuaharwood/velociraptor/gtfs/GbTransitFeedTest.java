@@ -123,6 +123,30 @@ class GbTransitFeedTest {
     assertThat(nationalRail.getAllEntitiesForType(GbTransitTransfer.class)).isEmpty();
   }
 
+  @Test
+  void theAttributionsAreReadInFileOrderWithTheirLicence() {
+    var attributions = nationalRail.getAllAttributions();
+    assertThat(attributions).extracting(FeedAttribution::getOrganizationName)
+                            .containsExactly("Rail Delivery Group", "Department for Transport");
+    var timetable = attributions.getFirst();
+    assertThat(timetable.getLicence()).isEqualTo("Rail Settlement Plan data licence");
+    assertThat(timetable.getUrl()).isEqualTo("https://raildata.org.uk/");
+    assertThat(FeedAttribution.flag(timetable.getIsAuthority())).isTrue();
+    assertThat(FeedAttribution.flag(timetable.getIsProducer())).isFalse();
+  }
+
+  @Test
+  void aFeedWithNoAttributionsHasNone() {
+    // The dtd2gtfs sample has no attributions.txt, and the file is optional.
+    assertThat(GtfsDeserialiser.createNewDao(DTD2GTFS, FeedFormat.DTD2GTFS).getAllAttributions()).isEmpty();
+  }
+
+  @Test
+  void theFeedInfoIsRead() {
+    assertThat(nationalRail.getAllFeedInfos()).singleElement()
+      .satisfies(info -> assertThat(info.getVersion()).isEqualTo("sample-1"));
+  }
+
   private static Stop stop(ExtendedGtfsRelationalDaoImpl dao, String id) {
     return dao.getAllStops().stream().filter(s -> s.getId().getId().equals(id)).findFirst().orElseThrow();
   }

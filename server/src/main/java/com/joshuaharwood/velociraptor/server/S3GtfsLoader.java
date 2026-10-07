@@ -1,7 +1,7 @@
 package com.joshuaharwood.velociraptor.server;
 
-import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.ExtendedGtfsRelationalDaoImpl;
+import com.joshuaharwood.velociraptor.gtfs.GtfsDeserialiser;
 import com.joshuaharwood.velociraptor.gtfs.FeedFormat;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
+import java.security.DigestOutputStream;
 
 import static com.joshuaharwood.velociraptor.server.VelociraptorConfig.GTFS_SOURCE_PATH;
 
@@ -55,7 +56,7 @@ public class S3GtfsLoader implements GtfsLoader {
   }
 
   @Override
-  public ExtendedGtfsRelationalDaoImpl load(FeedFormat format) {
+  public LoadedFeed load(FeedFormat format) {
     if (!s3Uri.startsWith("s3://")) {
       throw new IllegalArgumentException(
         "Expected S3 URI in format s3://bucket/key, got: " + s3Uri);
@@ -78,12 +79,19 @@ public class S3GtfsLoader implements GtfsLoader {
                                                            .key(key)
                                                            .build();
 
+      // Digested on the way to disk, so the bytes hashed are the bytes read.
+      var digest = FeedSource.newDigest();
+      GetObjectResponse object;
       try (ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
-           FileOutputStream fos = new FileOutputStream(tempFile)) {
-        s3Object.transferTo(fos);
+           DigestOutputStream out = new DigestOutputStream(new FileOutputStream(tempFile), digest)) {
+        s3Object.transferTo(out);
+        object = s3Object.response();
       }
 
       long fileSizeBytes = tempFile.length();
+      var source = new FeedSource(s3Uri, FeedSource.hex(digest), fileSizeBytes, object.versionId(),
+                                  object.eTag() == null ? null : object.eTag().replace("\"", ""),
+                                  object.lastModified());
       Log.infof("Downloaded GTFS to %s (%.2f MB)", tempFile.getAbsolutePath(), fileSizeBytes / 1024.0 / 1024.0);
 
       // Deserialize GTFS
@@ -96,7 +104,7 @@ public class S3GtfsLoader implements GtfsLoader {
         Log.warnf("Failed to delete temporary GTFS file: %s", tempFile.getAbsolutePath());
       }
 
-      return dao;
+      return new LoadedFeed(dao, source);
 
     } catch (IOException e) {
       throw new RuntimeException("Failed to download GTFS from S3: " + s3Uri, e);

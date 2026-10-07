@@ -43,6 +43,13 @@ public class ExtendedGtfsRelationalDaoImpl extends GtfsRelationalDaoImpl {
     }
   }
 
+  /** The rows of {@code attributions.txt}, in the order the file has them; empty where the feed has none. */
+  public List<FeedAttribution> getAllAttributions() {
+    return getAllEntitiesForType(FeedAttribution.class).stream()
+                                                       .sorted(Comparator.comparing(FeedAttribution::getId))
+                                                       .toList();
+  }
+
   public Collection<FixedLink> getAllFixedLinks() {
     if (validFixedLinks == null) {
       cacheLock.lock();

@@ -918,4 +918,54 @@ class RaptorResourceTest {
             .body("violations.field", containsInAnyOrder("orig", "startDate"));
   }
 
+
+  @Test
+  void theFeedSaysWhereItCameFrom() {
+    given()
+            .when().get("/feed")
+            .then()
+            .statusCode(200)
+            .body("format", is("gb-transit"))
+            .body("source.location", is("s3://" + LocalStackS3Resource.BUCKET + "/" + LocalStackS3Resource.KEY))
+            .body("source.sha256", matchesPattern("[0-9a-f]{64}"))
+            .body("source.sizeBytes", greaterThan(0))
+            // S3 gives the object an ETag; the test bucket keeps no versions, so the version is there and null.
+            .body("source.s3ETag", not(emptyOrNullString()))
+            .body("source", hasKey("s3VersionId"))
+            .body("source.s3LastModified", not(emptyOrNullString()))
+            .body("loadedAt", not(emptyOrNullString()))
+            .body("feedInfo.version", is("sample-1"))
+            .body("feedInfo.startDate", is("2026-06-01"))
+            .body("feedInfo.endDate", is("2026-06-28"))
+            .body("attributions.organizationName", contains("Rail Delivery Group", "Department for Transport"))
+            .body("attributions[0].licence", is("Rail Settlement Plan data licence"))
+            .body("attributions[0].authority", is(true))
+            .body("attributions[0].producer", is(false));
+  }
+
+  @Test
+  void everyResponseNamesTheFeedItWasAnsweredFrom() {
+    String id = given().when().get("/feed").then().statusCode(200).extract().path("id");
+    String sha256 = given().when().get("/feed").then().extract().path("source.sha256");
+    assertEquals(sha256.substring(0, 12), id);
+
+    given().when().get("/feed").then().header("X-Feed-Id", id);
+    given()
+            .queryParam("orig", ORIG)
+            .queryParam("dest", DEST)
+            .queryParam("startDate", DATE + "T08:30:00")
+            .queryParam("endDate", DATE + "T09:30:00")
+            .when().get("/detail")
+            .then()
+            .statusCode(200)
+            .header("X-Feed-Id", id);
+    // A problem too: the feed is what the request was refused against.
+    given()
+            .queryParam("dest", DEST)
+            .when().get("/")
+            .then()
+            .statusCode(400)
+            .header("X-Feed-Id", id);
+  }
+
 }

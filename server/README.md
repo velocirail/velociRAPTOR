@@ -4,13 +4,15 @@ Quarkus REST API exposing the RAPTOR routing engine.
 
 ## Endpoints
 
-All endpoints are `GET` and return JSON arrays of journeys.
+All endpoints are `GET`. The journey endpoints return JSON arrays of journeys; `/feed` describes the feed they
+answer from.
 
 | Path | Returns | Required params | Optional params |
 |---|---|---|---|
 | `/` | `SimpleJourney` (slim legs) | `orig`, `dest`, `startDate`, `endDate` | `notVia` (repeatable) |
 | `/detail` | `RailJourney` (full stop lists, train UIDs) | `orig`, `dest`, `startDate`, `endDate` | `notVia` |
 | `/first-arrival` | `RailJourney` — one journey per number of trains, earliest arrival departing at or after `startDate` | `orig`, `dest`, `startDate` | `notVia` |
+| `/feed` | `Feed` — the loaded feed and where it came from | | |
 
 ### Parameters
 
@@ -57,6 +59,23 @@ ones that may be null nullable; `OpenApiResponseSchemaTest` keeps it that way.
 ```
 curl 'http://localhost:8080/detail?orig=BTN&dest=MKC&startDate=2026-06-03T12:30:00%2B01:00&endDate=2026-06-03T13:05:00%2B01:00'
 ```
+
+### Where the data came from
+
+`GET /feed` says which feed the server is answering from:
+
+- `source`: where it was read (`s3://…` or a path), the SHA-256 of the zip as read (the same value `sha256sum`
+  gives for that file), its size, and for S3 the object's version ID, ETag and last-modified time. A feed read
+  from a directory is digested over its files in name order instead.
+- `feedInfo`: the feed's `feed_info.txt`. For a gb-transit feed, `version` is the DTD timetable file it was built
+  from, such as `RJTTF001.ZIP`.
+- `attributions`: the feed's `attributions.txt`, the sources it credits and their licences, including gb-transit's
+  non-standard `attribution_licence`.
+- `loadedAt`: when this server read it.
+
+Every response, errors included, carries the feed's `id` (the first twelve characters of the SHA-256) in an
+`X-Feed-Id` header. A client that stores a journey with its `X-Feed-Id` can trace it back to the exact file later,
+after the server has moved on to a newer feed.
 
 ## Errors
 
